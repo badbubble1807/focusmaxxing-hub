@@ -38,6 +38,7 @@ final class TabBarController: UITabBarController
     private var initialSegue: (identifier: String, sender: Any?)?
 
     private var _viewDidAppear = false
+    private var firstRunPresented = false
 
     required init?(coder aDecoder: NSCoder)
     {
@@ -90,6 +91,30 @@ final class TabBarController: UITabBarController
         {
             self.initialSegue = nil
             self.performSegue(withIdentifier: identifier, sender: sender)
+        }
+
+        self.presentFirstRunIfNeeded()
+    }
+
+    // focusmaxxing hub: the five setup steps, shown once. a moment's delay so it never collides
+    // with a prompt the launch screen may be putting up at the same time.
+    private func presentFirstRunIfNeeded()
+    {
+        guard !UserDefaults.standard.fmxFirstRunDone, !self.firstRunPresented else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self, !UserDefaults.standard.fmxFirstRunDone, !self.firstRunPresented else { return }
+            guard self.presentedViewController == nil, self.parent?.presentedViewController == nil else {
+                self.presentFirstRunIfNeeded()
+                return
+            }
+
+            self.firstRunPresented = true
+            let firstRun = FMXFirstRunViewController()
+            firstRun.completion = { [weak self] in
+                self?.selectedIndex = Tab.apps.rawValue
+            }
+            self.present(firstRun, animated: true)
         }
     }
 

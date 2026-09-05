@@ -395,9 +395,9 @@ public extension UserDefaults
 
         ] as [String: Any]
 
-        // TODO: temporarily forcing this to be visible in nightlies, remove this in stable release later
-        UserDefaults.standard.isDebugModeEnabled = true
-        
+        // focusmaxxing hub: SideStore's nightlies force the diagnostics section on; customers do not need it.
+        // (the three-finger swipe up on the settings screen still turns it on for a look under the hood.)
+
         UserDefaults.standard.register(defaults: defaults)
         
         // MDC is unsupported and spareRestore is patched
