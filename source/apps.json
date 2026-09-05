@@ -20,6 +20,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.5",
+          "date": "2026-09-05T15:58:18Z",
+          "localizedDescription": "Focusmaxxing Hub build 1.0.5.",
+          "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/hub/focusmaxxing-hub.ipa",
+          "size": 15376344,
+          "sha256": "8ad65a0d8e444fde95988b4fde3ab99107b6de38744599eff527ce16d5af8a32",
+          "minOSVersion": "15.0"
+        },
+        {
           "version": "1.0.3",
           "date": "2026-09-05T15:42:52Z",
           "localizedDescription": "Focusmaxxing Hub build 1.0.3.",
