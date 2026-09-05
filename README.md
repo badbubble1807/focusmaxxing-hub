@@ -4,9 +4,20 @@ The phone half of focusmaxxing. Focusmaxxing Hub installs **Custom blocked Insta
 
 Focusmaxxing Hub is a fork of [SideStore](https://github.com/SideStore/SideStore), which is itself a fork of [AltStore](https://github.com/altstoreio/AltStore). It is published here because SideStore is licensed under the GNU AGPL v3, which asks that anyone who receives the app can also get its source. See [Open Source & Licensing](#open-source--licensing).
 
+## What is in it
+
+- **Switches**: one row per switch for Instagram and YouTube. Green is blocked, red is allowed. Blocking is instant; unblocking makes you wait (10 to 30 seconds, set at the bottom), and the wait can only be changed once every 24 hours. Everything starts blocked. A change applies the next time the app is opened. The switches are written to a small file in the hub's shared folder, which the custom apps read.
+- **Apps**: two tiles, Custom blocked Instagram and Custom blocked YouTube, each with one Install / Open / Update button. There is no browsing and no way to add anything else.
+- **My Apps**: what is installed and how many days each app has left; SideStore's screen.
+- **Settings**: the Apple ID, background renewal, and a Legal row that opens the licensing page.
+- **First run**: the five setup steps, one screen each, one button each. The hub fetches the helper from the App Store and switches it on itself; the only helper-related tap is Apple's one-time "Allow VPN configuration".
+
+Our own code is in [`SideStore/Focusmaxxing/`](SideStore/Focusmaxxing/) and [`AltStore/TabBarController.swift`](AltStore/TabBarController.swift).
+
 ## What is changed from SideStore
 
 - The name, icon and every piece of text a customer can read say Focusmaxxing Hub.
+- Four tabs instead of five: Switches, Apps, My Apps, Settings. News and Sources are gone.
 - The built-in app list is [`source/apps.json`](source/apps.json): the hub itself and the two custom apps, nothing else. The old "recommended sources" list is replaced by an empty one, [`source/default-sources.json`](source/default-sources.json).
 - Settings: the Patreon, alternate-icon, tutorial and beta-channel sections are hidden; a **Legal** section with one row, *Open source & licensing*, opens the licensing page; feedback goes to this repository's issues.
 - SideStore's own workflows, issue templates and alternate icons are removed; one workflow, **build hub**, replaces them.
