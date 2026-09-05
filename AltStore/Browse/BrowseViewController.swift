@@ -15,7 +15,12 @@ class BrowseViewController: UICollectionViewController
 {
     // Nil == Show apps from all sources.
     let source: Source?
-    
+
+    // focusmaxxing hub: true when this screen is the "Apps" tab, showing the built-in list only
+    var isFocusmaxxingList: Bool {
+        return self.source?.identifier == Source.altStoreIdentifier
+    }
+
     private(set) var category: StoreCategory? {
         didSet {
             self.updateDataSource()
@@ -84,9 +89,13 @@ class BrowseViewController: UICollectionViewController
                                                                #keyPath(StoreApp.developerName),
                                                                #keyPath(StoreApp.bundleIdentifier)]
         #if !os(tvOS)
-        self.navigationItem.searchController = self.dataSource.searchController
+        // focusmaxxing hub: the built-in list is two apps; no search box over it
+        if !self.isFocusmaxxingList
+        {
+            self.navigationItem.searchController = self.dataSource.searchController
+        }
         #endif
-        
+
         self.prototypeCell.contentView.translatesAutoresizingMaskIntoConstraints = false
         
         self.collectionView.register(AppCardCollectionViewCell.self, forCellWithReuseIdentifier: RSTCellContentGenericCellIdentifier)
@@ -501,6 +510,9 @@ private extension BrowseViewController
     
     func prepareAppSorting()
     {
+        // focusmaxxing hub: two apps need no sort menu
+        if self.isFocusmaxxingList { return }
+
         if self.preferredAppSorting == .default && self.source == nil
         {
             // Only allow `default` sorting if source is non-nil.

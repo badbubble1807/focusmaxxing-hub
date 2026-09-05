@@ -87,7 +87,10 @@ class MyAppsViewController: UICollectionViewController
     override func viewDidLoad()
     {
         super.viewDidLoad()
-        
+
+        // focusmaxxing hub: no "+" button. the free tier is the two apps on the Apps tab, nothing picked from Files.
+        self.navigationItem.leftBarButtonItem = nil
+
         // Allows us to intercept delegate callbacks.
         self.updatesDataSource.fetchedResultsController.delegate = self
         self.activeAppsDataSource.fetchedResultsController.delegate = self
