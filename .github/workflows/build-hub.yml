@@ -46,12 +46,17 @@ jobs:
       - name: build cache
         uses: actions/cache@v4
         with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData
-            ~/Library/Caches/org.swift.swiftpm
+          path: ~/Library/Developer/Xcode/DerivedData
           key: hub-xcode-${{ github.sha }}
           restore-keys: |
             hub-xcode-
+
+      # the runner image ships with a half-finished package download (OpenSSL) in swift's cache and
+      # xcode refuses to overwrite it ("already exists in file system"); start that folder clean
+      - name: clear stale package downloads
+        run: |
+          rm -rf ~/Library/Caches/org.swift.swiftpm/artifacts
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*/SourcePackages/artifacts
 
       - name: build
         run: |
