@@ -51,12 +51,28 @@ jobs:
           restore-keys: |
             hub-xcode-
 
-      # the runner image ships with a half-finished package download (OpenSSL) in swift's cache and
-      # xcode refuses to overwrite it ("already exists in file system"); start that folder clean
-      - name: clear stale package downloads
+      # three of the packages point at the same OpenSSL download; on a cold runner swift fetches it
+      # three times at once and trips over itself ("already exists in file system"). resolving the
+      # packages on their own first, and again if that fails, leaves the download cached and the
+      # real build finds it there. the cache below keeps it warm for the next run.
+      - name: package downloads cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: hub-packages-v1
+
+      - name: resolve packages
         run: |
-          rm -rf ~/Library/Caches/org.swift.swiftpm/artifacts
-          rm -rf ~/Library/Developer/Xcode/DerivedData/*/SourcePackages/artifacts
+          for attempt in 1 2 3; do
+            echo "resolve attempt $attempt"
+            if xcodebuild -resolvePackageDependencies -project AltStore.xcodeproj -scheme SideStore > resolve.log 2>&1; then
+              echo "packages resolved"
+              break
+            fi
+            tail -n 20 resolve.log
+            if [ "$attempt" = "3" ]; then echo "could not resolve packages"; exit 1; fi
+            sleep 5
+          done
 
       - name: build
         run: |
