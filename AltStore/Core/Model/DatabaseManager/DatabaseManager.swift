@@ -484,7 +484,7 @@ public class DatabaseManager
                             }
                             catch
                             {
-                                debugLog("Failed to copy SideStore app bundle to its proper location. \(error)")
+                                debugLog("Failed to copy Focusmaxxing Hub app bundle to its proper location. \(error)")
                             }
                         }
                     }

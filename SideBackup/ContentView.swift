@@ -61,7 +61,7 @@ struct ContentView: View {
                         .foregroundColor(Color("Text"))
                         .multilineTextAlignment(.center)
                     
-                    Text(String(format: NSLocalizedString("Refresh %@ in SideStore to continue using it.", comment: ""),
+                    Text(String(format: NSLocalizedString("Refresh %@ in Focusmaxxing Hub to continue using it.", comment: ""),
                                 Bundle.main.appName ?? NSLocalizedString("this app", comment: "")))
                         .font(.body)
                         .foregroundColor(Color("Text"))

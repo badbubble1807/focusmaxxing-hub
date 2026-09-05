@@ -44,7 +44,7 @@ final class ExportResignedAppOperation: BasePipelineOperation<InstallAppOperatio
         }
 
         let utis = Bundle(url: resignedAppBundle.fileURL)?.infoDictionary?[Bundle.Info.exportedUTIs] as? [[String: Any]]
-        let isSideBackup = utis?.first?["UTTypeDescription"] as? String == "SideStore Backup App"
+        let isSideBackup = utis?.first?["UTTypeDescription"] as? String == "Focusmaxxing Hub Backup App"
         let destPath = isSideBackup ? resignedAppBundle.name + "-sidebackup" : resignedAppBundle.name
         let destinationURL = resignedAppsURL.appendingPathComponent(destPath + ".app")
         self.setProgress(60)

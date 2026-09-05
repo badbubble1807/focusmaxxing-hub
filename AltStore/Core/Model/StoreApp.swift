@@ -680,23 +680,23 @@ public extension StoreApp
             }
         }
         
-        return URL(string: "https://sidestore.io/apps-v2.json/apps/sidestore/icon.png")!
+        return FMXLinks.hubIconURL
     }
-    
+
     class func makeAltStoreApp(version: String, buildVersion: String?, in context: NSManagedObjectContext) -> StoreApp
     {
         let placeholderBundleId = StoreApp.altstoreAppID
-        let placeholderDownloadURL = URL(string: "https://sidestore.io")!
+        let placeholderDownloadURL = URL(string: "https://github.com/\(FMXLinks.repository)")!
         let placeholderSourceID = Source.altStoreIdentifier
         let placeholderVersion = "0.0.0"
         let placeholderDate = Date.distantPast
         let placeholderChannel = ReleaseTrackType.stable.description
         
         let app = StoreApp(context: context)
-        app.name = "SideStore"
+        app.name = "Focusmaxxing Hub"
         app.bundleIdentifier = placeholderBundleId
-        app.developerName = "Side Team"
-        app.localizedDescription = "SideStore is an alternative App Store."
+        app.developerName = "focusmaxxing"
+        app.localizedDescription = "Focusmaxxing Hub keeps Custom blocked Instagram and YouTube installed and holds their switches."
         app.iconURL = sideStoreAppIconURL        
         app.screenshotURLs = []
         app.sourceIdentifier = placeholderSourceID

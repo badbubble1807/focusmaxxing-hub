@@ -587,7 +587,7 @@ private extension AuthenticationOperation {
     private func requestCertificate(for team: ALTTeam, session: ALTAppleAPISession) async throws -> ALTCertificate {
         let deviceName = await UIDevice.current.name
         let accountName = team.account?.firstName ?? team.name
-        let machineName: String = "SideStore - \(accountName)'s \(deviceName)"
+        let machineName: String = "Focusmaxxing Hub - \(accountName)'s \(deviceName)"
         self.verboseLog("[Authentication] Requesting certificate for machineName '\(machineName)'...")
 
         do {

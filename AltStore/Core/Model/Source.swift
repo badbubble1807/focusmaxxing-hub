@@ -12,8 +12,10 @@ import CoreData
 public extension Source
 {
 
+    // focusmaxxing hub: the built-in source is our own list (the hub itself plus the two custom apps).
+    // it lives in this repository under source/apps.json; the cloud build keeps the hub entry current.
     // @livecontainer
-    @objc dynamic static let altStoreSourceURL = URL(string: "https://sidestore.io/apps-v2.json/")!
+    @objc dynamic static let altStoreSourceURL = FMXLinks.appSourceURL
     static let altStoreGroupIdentifier = Bundle.Info.appbundleIdentifier
     
     // normalized url is the source identifier (or) p-key!
@@ -361,7 +363,7 @@ public extension Source
     class func makeAltStoreSource(in context: NSManagedObjectContext) -> Source
     {
         let source = Source(context: context)
-        source.name = "SideStore Offical"
+        source.name = "Focusmaxxing"
         source.groupID = Source.altStoreGroupIdentifier
         source.identifier = Source.altStoreIdentifier
         try! source.setSourceURL(Source.altStoreSourceURL)

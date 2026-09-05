@@ -16,6 +16,8 @@
 	<string>1F7D5B55-79CE-4546-A029-D4DDC4AF3B6D</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Focusmaxxing Hub</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -62,7 +64,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>SideStore General</string>
+			<string>Focusmaxxing Hub</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>sidestore</string>
@@ -72,7 +74,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>SideStore Backup</string>
+			<string>Focusmaxxing Hub backup</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>sidestore-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
@@ -173,7 +175,7 @@
 		<string>_vnc._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>SideStore can use local network access to discover Bonjour (mDNS) services on your network. This is not required for core functionality.</string>
+	<string>Focusmaxxing Hub can use local network access to find devices on your network. This is not needed for normal use.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>RefreshAllIntent</string>

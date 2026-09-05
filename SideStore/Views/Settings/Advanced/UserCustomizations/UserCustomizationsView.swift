@@ -351,7 +351,7 @@ struct UserCustomizationsView: View {
             }
             SwiftUI.Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Changing the EMProxy setting requires restarting SideStore. If canceled, changes will not be saved.")
+            Text("Changing the EMProxy setting requires restarting Focusmaxxing Hub. If canceled, changes will not be saved.")
         }
         .alert("Restart Required", isPresented: $showBackendRestartConfirmation) {
             SwiftUI.Button("Restart Now", role: .destructive) {
@@ -366,7 +366,7 @@ struct UserCustomizationsView: View {
                 pendingBackendOption = nil
             }
         } message: {
-            Text("Changing the Minimuxer backend requires restarting SideStore. If canceled, changes will not be saved.")
+            Text("Changing the Minimuxer backend requires restarting Focusmaxxing Hub. If canceled, changes will not be saved.")
         }
     }
 

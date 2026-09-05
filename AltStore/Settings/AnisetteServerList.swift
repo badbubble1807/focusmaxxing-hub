@@ -556,7 +556,7 @@ struct AnisetteServersView: View {
                     } header: {
                         Text("Customization")
                     } footer: {
-                        Text("View, edit, or offline the header properties sent to Apple during provisioning, and control if SideStore automatically rotates/retries servers upon failure.")
+                        Text("View, edit, or offline the header properties sent to Apple during provisioning, and control if Focusmaxxing Hub automatically rotates/retries servers upon failure.")
                     }
 
                     // Section 3: Troubleshooting
@@ -574,7 +574,7 @@ struct AnisetteServersView: View {
                         .alert(isPresented: $showingResetAlert) {
                             Alert(
                                 title: Text("Reset adi.pb"),
-                                message: Text("Are you sure you want to clear adi.pb from the Keychain? You will need to log back in to Apple ID in SideStore."),
+                                message: Text("Are you sure you want to clear adi.pb from the Keychain? You will need to log back in to Apple ID in Focusmaxxing Hub."),
                                 primaryButton: .destructive(Text("Reset")) {
                                     #if !DEBUG
                                     if AnisetteDataManager.shared.anisetteAdiBlob != nil {

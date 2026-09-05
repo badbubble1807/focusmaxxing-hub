@@ -10,7 +10,8 @@ import Foundation
 
 private extension URL
 {
-   static let sources = URL(string: "https://sidestore.io/default-sources")!
+   // focusmaxxing hub: our own (empty) list, so the hub never fetches SideStore's recommendations
+   static let sources = FMXLinks.knownSourcesURL
 }
 
 extension UpdateKnownSourcesOperation

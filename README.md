@@ -1,47 +1,44 @@
-# SideStore
+# Focusmaxxing Hub
 
-> SideStore is an *untethered, community driven* alternative app store for non-jailbroken iOS devices 
+The phone half of focusmaxxing. Focusmaxxing Hub installs **Custom blocked Instagram** and **Custom blocked YouTube** on an iPhone with the owner's own Apple ID, keeps them working by renewing them in the background, and holds the switches that block the distracting parts of each app.
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
-[![Nightly SideStore build](https://github.com/SideStore/SideStore/actions/workflows/nightly.yml/badge.svg)](https://github.com/SideStore/SideStore/actions/workflows/nightly.yml)
-[![.github/workflows/beta.yml](https://github.com/SideStore/SideStore/actions/workflows/beta.yml/badge.svg)](https://github.com/SideStore/SideStore/actions/workflows/beta.yml)
-[![Discord](https://img.shields.io/discord/949183273383395328?label=Discord)](https://dis.sidestore.io)
+Focusmaxxing Hub is a fork of [SideStore](https://github.com/SideStore/SideStore), which is itself a fork of [AltStore](https://github.com/altstoreio/AltStore). It is published here because SideStore is licensed under the GNU AGPL v3, which asks that anyone who receives the app can also get its source. See [Open Source & Licensing](#open-source--licensing).
 
-![Alt](https://repobeats.axiom.co/api/embed/3a329ce95955690b9a9366f8d5598626a847d96c.svg "Repobeats analytics image")
+## What is changed from SideStore
 
-SideStore is an iOS application that allows you to sideload apps onto your iOS device with just your Apple ID. SideStore resigns apps with your personal development certificate, and then uses a [specially designed VPN](https://github.com/jkcoxson/em_proxy) in order to trick iOS into installing them. SideStore will periodically "refresh" your apps in the background, to keep their normal 7-day development period from expiring.
+- The name, icon and every piece of text a customer can read say Focusmaxxing Hub.
+- The built-in app list is [`source/apps.json`](source/apps.json): the hub itself and the two custom apps, nothing else. The old "recommended sources" list is replaced by an empty one, [`source/default-sources.json`](source/default-sources.json).
+- Settings: the Patreon, alternate-icon, tutorial and beta-channel sections are hidden; a **Legal** section with one row, *Open source & licensing*, opens the licensing page; feedback goes to this repository's issues.
+- SideStore's own workflows, issue templates and alternate icons are removed; one workflow, **build hub**, replaces them.
+- Every address the app talks to is in [`SideStore/FMXLinks.swift`](SideStore/FMXLinks.swift).
 
-SideStore's goal is to provide an untethered sideloading experience. It's a community driven fork of [AltStore](https://github.com/rileytestut/AltStore), and has already implemented some of the community's most-requested features.
+Everything else, the signing, the pairing with the helper, the background refresh, is SideStore's, unchanged, pinned at commit `a6ca4d1620e619158fa27d4e652e1f865b461f8b` (the 2026-09-05 nightly).
 
-(Contributions are welcome! 🙂)
+The app's identifier is still `com.SideStore.SideStore` on purpose: it lets the hub be installed over an existing SideStore, and it lets the computer step (iloader) treat it as SideStore, pairing file included. It changes to our own identifier when the Focusmaxxing Setup computer step exists.
 
-## Requirements
-- Xcode 15
-- iOS 14+
-- Rustup (`brew install rustup`)
+## Building
 
-Why iOS 14? Targeting such a recent version of iOS allows us to accelerate development, especially since not many developers have older devices to test on. This is corrobated by the fact that SwiftUI support is much better, allowing us to transistion to a more modern UI codebase.
-## Project Overview
+There is no need for a Mac. Open the **Actions** tab, pick **build hub**, press **Run workflow**. About twenty minutes later the finished app is on the [hub release](../../releases/tag/hub) as `focusmaxxing-hub.ipa`, and the hub's entry in `source/apps.json` is bumped to the new version so an installed hub offers the update by itself.
 
-### SideStore
-SideStore is a just regular, sandboxed iOS application. The AltStore app target contains the vast majority of SideStore's functionality, including all the logic for downloading and updating apps through SideStore. SideStore makes heavy use of standard iOS frameworks and technologies most iOS developers are familiar with.
+To build on a Mac instead: `make build fakesign ipa` in this folder, the same as SideStore.
 
-### EM Proxy
-[EM Proxy](https://github.com/jkcoxson/em_proxy) powers the defining feature of SideStore: untethered app installation. By leveraging a custom-built App Store app with additional entitlements ([LocalDevVPN](https://github.com/jkcoxson/LocalDevVPN)) to create the VPN tunnel for us, it allows SideStore to take advantage of [Jitterbug](https://github.com/osy/Jitterbug)'s loopback method without requiring a paid developer account.
+## Installing it on a phone that already has SideStore
 
-### Minimuxer
-[Minimuxer](https://github.com/jkcoxson/minimuxer) is a lockdown muxer that can run inside iOS’s sandbox. It replicates Apple’s usbmuxd protocol on macOS to “discover” devices to interface with LocalDevVPN on-device.
+Download `focusmaxxing-hub.ipa` from the hub release on the phone, open it, choose SideStore. Because the identifier is the same, SideStore installs it over itself: same Apple ID session, same pairing, new name and icon.
 
-### Roxas
-[Roxas](https://github.com/rileytestut/roxas) is Riley Testut's internal framework from AltStore used across many of their iOS projects, developed to simplify a variety of common tasks used in iOS development.
+## Open Source & Licensing
 
-We're hoping to eventually eliminate our dependency on it, as it increases the amount of unnecessary Objective-C in the project.
+Focusmaxxing Hub is free software under the [GNU Affero General Public License v3](LICENSE). It is built from:
 
-## Contributing/Compilation Instructions
+- **SideStore** by the SideStore team (AGPL-3): https://github.com/SideStore/SideStore
+- **AltStore** by Riley Testut (AGPL-3): https://github.com/altstoreio/AltStore
+- **minimuxer** and **em_proxy** by jkcoxson (MIT): https://github.com/SideStore/minimuxer
+- **Roxas** by Riley Testut (MIT)
 
-Please see [CONTRIBUTING.md](./CONTRIBUTING.md)
+The VPN helper the hub needs is **LocalDevVPN** by jkcoxson, a separate free app on the App Store. It is not part of this repository and keeps its own name.
 
-## Licensing
+The two custom apps are built from their own open-source projects; their source lives in the focusmaxxing-mobile repository and is offered under the same terms (SCInsta, GPL-3; LiveContainer, AGPL-3).
 
-This project is licensed under the **AGPLv3 license**.
+## Pro
+
+The Pro tier signs plain Instagram and YouTube for your phone on our own developer account, with no helper, no computer step and no seven-day renewals. It is not available yet.

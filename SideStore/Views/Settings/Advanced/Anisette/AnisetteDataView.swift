@@ -284,7 +284,7 @@ struct AnisetteDataView: View {
                 } header: {
                     Text("Operational Mode")
                 } footer: {
-                    Text("When enabled, SideStore uses the locally saved JSON configuration parameters for all authentication headers without making client_info requests to servers.")
+                    Text("When enabled, Focusmaxxing Hub uses the locally saved JSON configuration parameters for all authentication headers without making client_info requests to servers.")
                 }
                 
                 if viewModel.viewMode == 0 {

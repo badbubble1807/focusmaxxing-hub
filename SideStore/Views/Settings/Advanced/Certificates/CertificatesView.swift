@@ -94,7 +94,7 @@ struct CertificatesView: View {
                     .accessibilityLabel("Toggle Hide Sensitive Information")
                     
                     SwiftUI.Button {
-                        newMachineName = "SideStore - \(UIDevice.current.name)"
+                        newMachineName = "Focusmaxxing Hub - \(UIDevice.current.name)"
                         showCreateDialog = true
                     } label: {
                         Image(systemName: "plus")

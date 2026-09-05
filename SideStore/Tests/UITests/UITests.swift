@@ -311,7 +311,7 @@ private extension UITests {
         
         // Data model for recommended sources. NOTE: This list order is required to be the same as that of "Add Source" Screen
         let recommendedSources: [(identifier: String, alertTitle: String, requiresSwipe: Bool)] = [
-            ("SideStore Team Picks\ncommunity-apps.sidestore.io/sidecommunity.json", "SideStore Team Picks", false),
+            ("SideStore Team Picks\ncommunity-apps.sidestore.io/sidecommunity.json", "Focusmaxxing Hub Team Picks", false),
             ("Provenance EMU\nprovenance-emu.com/apps.json", "Provenance EMU", false),
             ("Countdown Respository\nneoarz.github.io/Countdown-App/Countdown.json", "Countdown Respository", false),
             ("OatmealDome's AltStore Source\naltstore.oatmealdome.me", "OatmealDome's AltStore Source", true),
@@ -405,7 +405,7 @@ private extension UITests {
         
         // Data model for recommended sources. NOTE: This list order is required to be the same as that of "Add Source" Screen
         let recommendedSources: [(identifier: String, alertTitle: String, requiresSwipe: Bool)] = [
-            ("SideStore Team Picks\ncommunity-apps.sidestore.io/sidecommunity.json", "SideStore Team Picks", false),
+            ("SideStore Team Picks\ncommunity-apps.sidestore.io/sidecommunity.json", "Focusmaxxing Hub Team Picks", false),
             ("Provenance EMU\nprovenance-emu.com/apps.json", "Provenance EMU", false),
             ("Countdown Respository\nneoarz.github.io/Countdown-App/Countdown.json", "Countdown Respository", false),
             ("OatmealDome's AltStore Source\naltstore.oatmealdome.me", "OatmealDome's AltStore Source", false),

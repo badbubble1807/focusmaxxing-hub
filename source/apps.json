@@ -1,0 +1,97 @@
+{
+  "version": 2,
+  "name": "Focusmaxxing",
+  "identifier": "com.SideStore.SideStore",
+  "subtitle": "The two custom apps and the hub that keeps them working.",
+  "description": "Focusmaxxing Hub installs Custom blocked Instagram and Custom blocked YouTube, renews them in the background, and holds the switches that block the distracting parts of each app.",
+  "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/AltStore/Resources/Icons.xcassets/AppIcon.appiconset/1024.png",
+  "website": "https://github.com/badbubble1807/focusmaxxing-hub",
+  "tintColor": "1DB954",
+  "apps": [
+    {
+      "name": "Focusmaxxing Hub",
+      "bundleIdentifier": "com.SideStore.SideStore",
+      "developerName": "focusmaxxing",
+      "subtitle": "Keeps your custom apps working.",
+      "localizedDescription": "Focusmaxxing Hub keeps Custom blocked Instagram and YouTube installed and holds their switches. The cloud build updates this entry on every build.",
+      "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/AltStore/Resources/Icons.xcassets/AppIcon.appiconset/1024.png",
+      "tintColor": "1DB954",
+      "category": "utilities",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "date": "2026-09-06T00:00:00Z",
+          "localizedDescription": "First build.",
+          "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/hub/focusmaxxing-hub.ipa",
+          "size": 0,
+          "minOSVersion": "15.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [
+          { "name": "com.apple.security.application-groups" },
+          { "name": "aps-environment" },
+          { "name": "com.apple.developer.siri" },
+          { "name": "get-task-allow" }
+        ],
+        "privacy": [
+          { "name": "LocalNetwork", "usageDescription": "Focusmaxxing Hub can use local network access to find devices on your network. This is not needed for normal use." },
+          { "name": "NSBackgroundAudioUsageDescription", "usageDescription": "Lets Focusmaxxing Hub keep working for more than 30 seconds while it renews apps in the background." },
+          { "name": "NSBackgroundFetchUsageDescription", "usageDescription": "Focusmaxxing Hub renews your apps in the background so they keep opening." }
+        ]
+      }
+    },
+    {
+      "name": "Custom blocked Instagram",
+      "bundleIdentifier": "com.burbn.instagram",
+      "developerName": "focusmaxxing",
+      "subtitle": "Instagram with the feed, reels, stories, suggestions, messages, notifications and comments switchable.",
+      "localizedDescription": "The real Instagram with focusmaxxing inside. Everything starts blocked. Open Focusmaxxing Hub to change a switch; changes apply the next time Instagram is opened.",
+      "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/source/icons/instagram.jpg",
+      "tintColor": "E1306C",
+      "category": "social",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "445.0.0",
+          "date": "2026-09-05T00:00:00Z",
+          "localizedDescription": "Instagram build 6.",
+          "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-instagram.ipa",
+          "size": 0,
+          "minOSVersion": "15.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": []
+      }
+    },
+    {
+      "name": "Custom blocked YouTube",
+      "bundleIdentifier": "com.focusmaxxing.youtube",
+      "developerName": "focusmaxxing",
+      "subtitle": "YouTube with recommendations, comments, notifications, Shorts scrolling and ads switchable.",
+      "localizedDescription": "The real YouTube with focusmaxxing inside, signed in with your Google account. Everything starts blocked. Open Focusmaxxing Hub to change a switch; changes apply the next time YouTube is opened.",
+      "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/source/icons/youtube.jpg",
+      "tintColor": "FF0000",
+      "category": "entertainment",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "21.35.3",
+          "date": "2026-09-05T00:00:00Z",
+          "localizedDescription": "YouTube app build 3.",
+          "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-youtube-app.ipa",
+          "size": 0,
+          "minOSVersion": "15.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": []
+      }
+    }
+  ],
+  "news": []
+}

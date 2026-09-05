@@ -261,7 +261,10 @@ final class SettingsViewController: UITableViewController
             button.setImage(image, for: .normal)
             button.imageView?.contentMode = .scaleAspectFit
         }
-        
+
+        // focusmaxxing hub: no social links at the bottom of settings. the row of buttons is one stack view.
+        self.mastodonButton.superview?.isHidden = true
+
         configureReleaseChannelButton()
     }
     
@@ -431,7 +434,7 @@ private extension SettingsViewController
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Sign in with your Apple ID to download apps from SideStore.", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Sign in with your Apple ID to download apps from Focusmaxxing Hub.", comment: "")
             }
             
         case .patreon:
@@ -441,7 +444,7 @@ private extension SettingsViewController
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Support the SideStore Team by following our socials or becoming a patron!", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Support the Focusmaxxing Hub Team by following our socials or becoming a patron!", comment: "")
             }
 
         case .account:
@@ -458,7 +461,7 @@ private extension SettingsViewController
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Enable Background Refresh to automatically refresh apps in the background when connected to Wi-Fi. \n\nEnable Disable Idle Timeout to allow SideStore to keep your device awake during a refresh or install of any apps.", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Enable Background Refresh to automatically refresh apps in the background when connected to Wi-Fi. \n\nEnable Disable Idle Timeout to allow Focusmaxxing Hub to keep your device awake during a refresh or install of any apps.", comment: "")
             }
             
         case .display:
@@ -468,7 +471,7 @@ private extension SettingsViewController
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Personalize your SideStore experience by choosing an alternate app icon.", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Personalize your Focusmaxxing Hub experience by choosing an alternate app icon.", comment: "")
             }
             
             
@@ -486,8 +489,9 @@ private extension SettingsViewController
             }
             
         case .credits:
-            settingsHeaderFooterView.primaryLabel.text = NSLocalizedString("CREDITS", comment: "")
-            
+            // focusmaxxing hub: the credits section holds one row, "Open source & licensing", which opens the website
+            settingsHeaderFooterView.primaryLabel.text = NSLocalizedString("LEGAL", comment: "")
+
         case .advancedSettings:
             settingsHeaderFooterView.primaryLabel.text = NSLocalizedString("ADVANCED SETTINGS", comment: "")
 
@@ -544,7 +548,10 @@ private extension SettingsViewController
         // case .macDirtyCow:
         //     let isHidden = !(UserDefaults.standard.isCowExploitSupported && UserDefaults.standard.isDebugModeEnabled)
         //     return isHidden
-            
+
+        // focusmaxxing hub: SideStore's patreon, alternate icons, "how it works" tutorial and beta channel are not ours
+        case .patreon, .display, .instructions, .betaTesting: return true
+
         default: return false
         }
     }
@@ -712,7 +719,7 @@ private extension SettingsViewController
     func clearCache()
     {
         let makeCacheTitle: (String) -> String = { sizeString in
-            String(format: NSLocalizedString("Are you sure you want to clear SideStore's cache?\n\nCache Size: %@", comment: ""), sizeString)
+            String(format: NSLocalizedString("Are you sure you want to clear Focusmaxxing Hub's cache?\n\nCache Size: %@", comment: ""), sizeString)
         }
         let alertController = UIAlertController(title: makeCacheTitle(NSLocalizedString("Calculating…", comment: "")),
                                                 message: NSLocalizedString("This will remove all temporary files as well as backups for uninstalled apps.", comment: ""),
@@ -888,14 +895,20 @@ extension SettingsViewController
         case .account: return (self.activeTeam == nil) ? 0 : 3
         case .appRefresh: return AppRefreshRow.allCases.count
         case .advancedSettings: return AdvancedSettingsRow.allCases.count
+        case .credits: return 1    // focusmaxxing hub: only the "Open source & licensing" row (the first cell in the storyboard)
         default: return super.tableView(tableView, numberOfRowsInSection: section.rawValue)
         }
     }
-    
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell
     {
         let cell = super.tableView(tableView, cellForRowAt: indexPath)
-        
+
+        // focusmaxxing hub: the single legal row is drawn as a rounded card on its own
+        if let cell = cell as? InsetGroupTableViewCell, indexPath.section == Section.credits.rawValue
+        {
+            cell.style = .single
+        }
 
         if AppRefreshRow.AllCases().count == 1
         {
@@ -1058,10 +1071,10 @@ extension SettingsViewController
             let row = CreditsRow.allCases[indexPath.row]
             switch row
             {
-            case .developer: self.openTwitter(username: "sidestoreio")
-            case .operations: self.openTwitter(username: "sidestoreio")
-            case .designer: self.openTwitter(username: "lit_ritt")
-            case .softwareLicenses: break
+            // focusmaxxing hub: the only visible row opens the website's "Open source & licensing" page,
+            // which is where the projects this app is built on are named and their source is offered.
+            case .developer: self.openWebURL(FMXLinks.legalURL, preferredTintColor: .altPrimary)
+            case .operations, .designer, .softwareLicenses: break
             }
             
             if let selectedIndexPath = self.tableView.indexPathForSelectedRow
@@ -1076,43 +1089,13 @@ extension SettingsViewController
             case .sendFeedback:
                 let alertController = UIAlertController(title: "Send Feedback", message: "Choose a method to send feedback:", preferredStyle: .actionSheet)
                 
-                // Option 1: GitHub
+                // focusmaxxing hub: feedback goes to our own repository. SideStore's discord and support mail are not ours.
                 alertController.addAction(UIAlertAction(title: "GitHub", style: .default) { _ in
-                    if let githubURL = URL(string: "https://github.com/SideStore/SideStore/issues") {
+                    if let githubURL = URL(string: "https://github.com/\(FMXLinks.repository)/issues") {
                         self.openWebURL(githubURL, preferredTintColor: .altPrimary)
                     }
                 })
-                
-                // Option 2: Discord
-                alertController.addAction(UIAlertAction(title: "Discord", style: .default) { _ in
-                    if let discordURL = URL(string: "https://discord.gg/sidestore-949183273383395328") {
-                        self.openWebURL(discordURL, preferredTintColor: .altPrimary)
-                    }
-                })
-                
-                #if !os(tvOS)
-                // Option 3: Mail
-                alertController.addAction(UIAlertAction(title: "Send Email", style: .default) { _ in
-                    if MFMailComposeViewController.canSendMail() {
-                        let mailViewController = MFMailComposeViewController()
-                        mailViewController.mailComposeDelegate = self
-                        mailViewController.setToRecipients(["support@sidestore.io"])
 
-                        // TODO: MARKETING_VERSION is going to be set anyways so this needs to be fixed for beta
-                        if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
-                            mailViewController.setSubject("SideStore Beta \(version) Feedback")
-                        } else {
-                            mailViewController.setSubject("SideStore Beta Feedback")
-                        }
-
-                       self.present(mailViewController, animated: true, completion: nil)
-                    } else {
-                      let toastView = ToastView(text: NSLocalizedString("Cannot Send Mail", comment: ""), detailText: nil)
-                      toastView.show(in: self)
-                    }
-                })
-                #endif
-                
                 // Cancel action
                 alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
                 
@@ -1146,7 +1129,7 @@ extension SettingsViewController
                 let documentsPath = fm.documentsDirectory.appendingPathComponent("/\(filename)")
                 let alertController = UIAlertController(
                     title: NSLocalizedString("Are you sure to reset the pairing file?", comment: ""),
-                    message: NSLocalizedString("You can reset the pairing file when you cannot sideload apps or enable JIT. You need to restart SideStore.", comment: ""),
+                    message: NSLocalizedString("You can reset the pairing file when you cannot sideload apps or enable JIT. You need to restart Focusmaxxing Hub.", comment: ""),
                     preferredStyle: UIAlertController.Style.actionSheet)
                 
                 alertController.addAction(UIAlertAction(title: NSLocalizedString("Delete and Reset", comment: ""), style: .destructive){ _ in
@@ -1156,7 +1139,7 @@ extension SettingsViewController
                         NSLog("Pairing File Reseted")
                     }
                     self.tableView.deselectRow(at: indexPath, animated: true)
-                    let dialogMessage = UIAlertController(title: NSLocalizedString("Pairing File Reset", comment: ""), message: NSLocalizedString("Please restart SideStore", comment: ""), preferredStyle: .alert)
+                    let dialogMessage = UIAlertController(title: NSLocalizedString("Pairing File Reset", comment: ""), message: NSLocalizedString("Please restart Focusmaxxing Hub", comment: ""), preferredStyle: .alert)
                     self.present(dialogMessage, animated: true, completion: nil)
                 })
                 alertController.addAction(.cancel)
@@ -1171,7 +1154,7 @@ extension SettingsViewController
                     selected: UserDefaults.standard.menuAnisetteURL,
                     onResetAdiPb: { [weak self] in
                         guard let self = self else { return }
-                        ToastView(text: "Cleared adi.pb!", detailText: "You will need to log back into Apple ID in SideStore.")
+                        ToastView(text: "Cleared adi.pb!", detailText: "You will need to log back into Apple ID in Focusmaxxing Hub.")
                             .show(in: self)
                     }
                 )
