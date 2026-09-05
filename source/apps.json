@@ -20,6 +20,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.3",
+          "date": "2026-09-05T15:42:52Z",
+          "localizedDescription": "Focusmaxxing Hub build 1.0.3.",
+          "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/hub/focusmaxxing-hub.ipa",
+          "size": 15358342,
+          "sha256": "15acd493411a425dfff384b705408e106f31c5a22ddc745430a13acfc9e90586",
+          "minOSVersion": "15.0"
+        },
+        {
           "version": "1.0.0",
           "date": "2026-09-06T00:00:00Z",
           "localizedDescription": "First build.",
@@ -30,15 +39,32 @@
       ],
       "appPermissions": {
         "entitlements": [
-          { "name": "com.apple.security.application-groups" },
-          { "name": "aps-environment" },
-          { "name": "com.apple.developer.siri" },
-          { "name": "get-task-allow" }
+          {
+            "name": "com.apple.security.application-groups"
+          },
+          {
+            "name": "aps-environment"
+          },
+          {
+            "name": "com.apple.developer.siri"
+          },
+          {
+            "name": "get-task-allow"
+          }
         ],
         "privacy": [
-          { "name": "LocalNetwork", "usageDescription": "Focusmaxxing Hub can use local network access to find devices on your network. This is not needed for normal use." },
-          { "name": "NSBackgroundAudioUsageDescription", "usageDescription": "Lets Focusmaxxing Hub keep working for more than 30 seconds while it renews apps in the background." },
-          { "name": "NSBackgroundFetchUsageDescription", "usageDescription": "Focusmaxxing Hub renews your apps in the background so they keep opening." }
+          {
+            "name": "LocalNetwork",
+            "usageDescription": "Focusmaxxing Hub can use local network access to find devices on your network. This is not needed for normal use."
+          },
+          {
+            "name": "NSBackgroundAudioUsageDescription",
+            "usageDescription": "Lets Focusmaxxing Hub keep working for more than 30 seconds while it renews apps in the background."
+          },
+          {
+            "name": "NSBackgroundFetchUsageDescription",
+            "usageDescription": "Focusmaxxing Hub renews your apps in the background so they keep opening."
+          }
         ]
       }
     },
