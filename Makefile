@@ -251,7 +251,11 @@ clean-build:
 
 fakesign-apps:
 	ldid -SAltStore/Resources/ReleaseEntitlements.plist SideStore.xcarchive/Products/Applications/SideStore.app/SideStore
-	ldid -SAltWidget/Resources/ReleaseEntitlements.plist SideStore.xcarchive/Products/Applications/SideStore.app/PlugIns/AltWidgetExtension.appex/AltWidgetExtension
+	@# focusmaxxing hub: the widget extension is removed from the app before packaging (see build-hub.yml),
+	@# because a third-party signer leaves it without a provisioning profile and the hub then refuses to start.
+	@if [ -d SideStore.xcarchive/Products/Applications/SideStore.app/PlugIns/AltWidgetExtension.appex ]; then \
+		ldid -SAltWidget/Resources/ReleaseEntitlements.plist SideStore.xcarchive/Products/Applications/SideStore.app/PlugIns/AltWidgetExtension.appex/AltWidgetExtension; \
+	fi
 
 fakesign-sidebackup:	
 	@echo ''

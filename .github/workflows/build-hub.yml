@@ -79,6 +79,11 @@ jobs:
           set -o pipefail
           echo "version $VERSION"
           NSUnbufferedIO=YES MARKETING_VERSION="$VERSION" make -B build 2>&1 | tee build.log | xcbeautify --renderer github-actions
+          # no widget extension: at start the hub records its own extensions and needs a provisioning
+          # profile for each; a third-party signer signs the app but not the widget, and the hub then
+          # refuses to start. the widget was only a home-screen nicety.
+          rm -rf SideStore.xcarchive/Products/Applications/SideStore.app/PlugIns
+          ls SideStore.xcarchive/Products/Applications/SideStore.app
           make fakesign 2>&1 | tee -a build.log
           make ipa 2>&1 | tee -a build.log
           mv SideStore.ipa focusmaxxing-hub.ipa
