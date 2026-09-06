@@ -93,8 +93,9 @@
           "date": "2026-09-05T00:00:00Z",
           "localizedDescription": "Instagram build 6.",
           "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-instagram.ipa",
-          "size": 0,
-          "minOSVersion": "15.0"
+          "size": 255772225,
+          "minOSVersion": "15.0",
+          "sha256": "1d0c2672f1d8fa6041b6d8a615e4c1e7b933ab76ce9ecb89c9a9895031a76cde"
         }
       ],
       "appPermissions": {
@@ -118,8 +119,9 @@
           "date": "2026-09-05T00:00:00Z",
           "localizedDescription": "YouTube app build 3.",
           "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-youtube-app.ipa",
-          "size": 0,
-          "minOSVersion": "15.0"
+          "size": 133032906,
+          "minOSVersion": "15.0",
+          "sha256": "04fab712e9f3c81f8912dac76b6f9fb3e33dca23abf7fb4cfe17ddb8b37ec105"
         }
       ],
       "appPermissions": {
