@@ -147,7 +147,18 @@ public class InstalledApp: BaseEntity, InstalledAppProtocol
         if latestVer! > currentVer! {
             return true
         }
-        
+
+        // focusmaxxing hub: the two custom apps keep instagram's and youtube's own version
+        // numbers, so a rebuild never moves major.minor.patch and the tile never said Update.
+        // the app list carries the build number as buildVersion instead (written by
+        // scripts/fmx/publish-apps.js) and the hub records the build it installed as
+        // storeBuildVersion; a different build number is an update. an app installed before
+        // the list had build numbers has none recorded and is offered the current build once.
+        // the hub's own entry has no build number and is not affected.
+        if latestVer == currentVer, let latestBuild = latestVersion.buildVersion, !latestBuild.isEmpty, self.storeBuildVersion != latestBuild {
+            return true
+        }
+
         // Check beta updates if enabled
         if UserDefaults.standard.isBetaUpdatesEnabled,
            ReleaseTrackType.betaTracks.contains(latestVersion.channel),

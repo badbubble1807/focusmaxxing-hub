@@ -336,8 +336,15 @@ public class DatabaseManager
                 try! altStoreSource.setSourceURL(Source.altStoreSourceURL)
                 
                 let storeApp: StoreApp
-                
-                if let app = StoreApp.first(satisfying: NSPredicate(format: "%K == %@", #keyPath(StoreApp.bundleIdentifier), StoreApp.altstoreAppID), in: context)
+
+                // focusmaxxing hub: the hub's own entry has to be the one in our list. a hub installed
+                // over SideStore also has SideStore's old source in the database, with an entry for
+                // this same bundle id, and matching on the bundle id alone picked whichever came
+                // first (see FMXLeftoverSources, which removes that source further down).
+                let hubEntryPredicate = NSPredicate(format: "%K == %@ AND %K == %@",
+                                                    #keyPath(StoreApp.bundleIdentifier), StoreApp.altstoreAppID,
+                                                    #keyPath(StoreApp.sourceIdentifier), Source.altStoreIdentifier)
+                if let app = StoreApp.first(satisfying: hubEntryPredicate, in: context)
                 {
                     storeApp = app
                 }
@@ -346,7 +353,14 @@ public class DatabaseManager
                     storeApp = StoreApp.makeAltStoreApp(version: localAppBundle.version, buildVersion: nil, in: context)
                     storeApp.source = altStoreSource
                 }
-                            
+
+                // focusmaxxing hub: the installed record for the hub may still point at the old
+                // source's entry (or at nothing); move it over so no second record gets made
+                if storeApp.installedApp == nil, let existingInstalledApp = InstalledApp.fetchAltStore(in: context)
+                {
+                    existingInstalledApp.storeApp = storeApp
+                }
+
                 let serialNumber = CertificateManager.shared.getSigningCertificate(at: Bundle.Info.activeBundleURL)?.serialNumber
                 
                 let installedApp: InstalledApp
@@ -408,7 +422,11 @@ public class DatabaseManager
                         installedApp.releaseTrack = trackEntity
                     }
                 }
-                
+
+                // focusmaxxing hub: our list is the only source; anything else in the database is
+                // left over from the SideStore this hub replaced and goes now
+                FMXLeftoverSources.remove(keeping: altStoreSource, in: context)
+
                 /* App Extensions */
                 var installedExtensions = Set<InstalledExtension>()
                 

@@ -955,9 +955,11 @@ extension AppManager: PipelineProgress, PipelineExecutionContext, PipelineErrorL
         self.progressLock.withLock {
             switch operation
             {
-            case .install, .update: 
+            case .install, .update:
                 self.installationProgress[bundleID] = progress
-            case .refresh, .activate, .deactivate, .deleteApp, .backup, .restore, .resign, .removeApp, .removeDeactivatedApp: 
+                // focusmaxxing hub: the tile's status line ("Downloading 43%") ends with the install
+                if progress == nil { FMXInstallStatus.set(nil, for: bundleID) }
+            case .refresh, .activate, .deactivate, .deleteApp, .backup, .restore, .resign, .removeApp, .removeDeactivatedApp:
                 self.refreshProgress[bundleID] = progress
             }
             debugLog("[AppManager] setProgress: \(progress.map { "\($0)" } ?? "nil") for operation: .\(operationName), totalUnitCount: \(progress?.totalUnitCount ?? 0)")

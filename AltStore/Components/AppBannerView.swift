@@ -59,7 +59,12 @@ class AppBannerView: RSTNibView
     var style: Style = .app
     
     private var originalTintColor: UIColor?
-    
+
+    // focusmaxxing hub: which app this banner shows and its usual second line, so the install
+    // status line can take that line over and give it back (see the extension at the bottom)
+    private var fmxBundleIdentifier: String?
+    private var fmxNormalSubtitle: String?
+
     @IBOutlet var titleLabel: UILabel!
     @IBOutlet var subtitleLabel: UILabel!
     @IBOutlet var iconImageView: AppIconImageView!
@@ -107,6 +112,8 @@ class AppBannerView: RSTNibView
         
         self.stackView.isLayoutMarginsRelativeArrangement = true
         self.stackView.preservesSuperviewLayoutMargins = true
+
+        NotificationCenter.default.addObserver(self, selector: #selector(AppBannerView.fmxInstallStatusDidChange(_:)), name: FMXInstallStatus.didChangeNotification, object: nil)
     }
     
     override func tintColorDidChange()
@@ -178,6 +185,8 @@ extension AppBannerView
             self.subtitleLabel.text = NSLocalizedString("Sideloaded", comment: "")
             self.accessibilityLabel = values.name
         }
+        self.fmxBundleIdentifier = app.bundleIdentifier
+        self.fmxNormalSubtitle = self.subtitleLabel.text
         self.buttonLabel.isHidden = true
         
         if let source = app.storeApp?.source, showSourceIcon
@@ -327,6 +336,8 @@ extension AppBannerView
         {
             self.button.progress = nil
         }
+
+        self.fmxShowInstallStatus()
     }
     
     func configure(for source: Source)
@@ -412,6 +423,33 @@ private extension AppBannerView
             let textVibrancyEffect = UIVibrancyEffect(blurEffect: UIBlurEffect(style: .dark))
             self.vibrancyView.effect = textVibrancyEffect
             #endif
+        }
+    }
+}
+
+// focusmaxxing hub: while an app is being installed, the line under its name says what is
+// going on ("Downloading 43%", then "Installing…") instead of the developer's name. the text
+// comes from FMXInstallStatus; the line goes back to normal when the install ends.
+extension AppBannerView
+{
+    @objc fileprivate func fmxInstallStatusDidChange(_ notification: Notification)
+    {
+        guard let bundleIdentifier = notification.userInfo?[FMXInstallStatus.bundleIdentifierKey] as? String,
+              bundleIdentifier == self.fmxBundleIdentifier else { return }
+        self.fmxShowInstallStatus()
+    }
+
+    fileprivate func fmxShowInstallStatus()
+    {
+        guard self.style == .app, let bundleIdentifier = self.fmxBundleIdentifier else { return }
+
+        if self.button.progress != nil, let text = FMXInstallStatus.text(for: bundleIdentifier)
+        {
+            self.subtitleLabel.text = text
+        }
+        else
+        {
+            self.subtitleLabel.text = self.fmxNormalSubtitle
         }
     }
 }

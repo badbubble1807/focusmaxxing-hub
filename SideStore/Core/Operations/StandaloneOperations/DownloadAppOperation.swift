@@ -18,6 +18,7 @@ final class DownloadAppOperation: BasePipelineOperation<InstallAppOperationConte
     private var sourceURL: URL?
     private let destinationURL: URL
 
+    // only for an app's dependencies (small files); the app itself goes through FMXBackgroundDownload
     private let session = URLSession(configuration: .default)
     private let temporaryDirectory = FileManager.default.uniqueTemporaryURL()
 
@@ -216,9 +217,20 @@ final class DownloadAppOperation: BasePipelineOperation<InstallAppOperationConte
     
     func downloadFile(from downloadURL: URL) async throws -> URL {
         debugLog("[DownloadAppOperation] download started: \(downloadURL)")
-        let delegate = DownloadProgressDelegate(progress: self.progress)
+        // focusmaxxing hub: a background session, so the download carries on when the hub is
+        // left (SideStore's plain session was paused within half a minute of that), and a line
+        // of text for the tile, because the download is only a fifth of the progress ring and
+        // a slow one looked stuck at zero. see FMXBackgroundDownload and FMXInstallStatus.
+        let bundleIdentifier = self.bundleIdentifier
+        FMXInstallStatus.set("Downloading…", for: bundleIdentifier)
+        let download = FMXBackgroundDownload { [weak self] written, expected in
+            guard let self, expected > 0 else { return }
+            let fraction = Double(written) / Double(expected)
+            self.progress.completedUnitCount = Int64(fraction * 75.0)
+            FMXInstallStatus.set("Downloading \(Int(fraction * 100))%", for: bundleIdentifier)
+        }
         do {
-            let (fileURL, response) = try await self.session.download(from: downloadURL, delegate: delegate)
+            let (fileURL, response) = try await download.download(from: downloadURL)
             let resp = response as? HTTPURLResponse
             if let resp {
                 debugLog("[DownloadAppOperation] downloadFile: completed with status \(resp.statusCode) at \(fileURL.path)")
@@ -228,9 +240,11 @@ final class DownloadAppOperation: BasePipelineOperation<InstallAppOperationConte
                 debugLog("[DownloadAppOperation] downloadFile: completed at \(fileURL.path)")
             }
             self.setProgress(75)
+            FMXInstallStatus.set("Installing…", for: bundleIdentifier)
             return fileURL
-        }catch{
+        } catch {
             debugLog("[DownloadAppOperation] download failed for url: \(downloadURL)")
+            FMXInstallStatus.set(nil, for: bundleIdentifier)
             throw error
         }
     }
@@ -313,24 +327,5 @@ extension DownloadAppOperation {
             self.downloadURL = downloadURL
             self.path = path
         }
-    }
-}
-
-private class DownloadProgressDelegate: NSObject, URLSessionDownloadDelegate {
-    let progress: Progress
-    
-    init(progress: Progress) {
-        self.progress = progress
-    }
-    
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        if totalBytesExpectedToWrite > 0 {
-            let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-            self.progress.completedUnitCount = Int64(fraction * 75.0)
-        }
-    }
-    
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        // Unused as download(from:delegate:) returns the file URL directly
     }
 }

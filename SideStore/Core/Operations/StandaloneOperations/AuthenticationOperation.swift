@@ -113,8 +113,11 @@ final class AuthenticationOperation: BaseStandaloneOperation<AuthenticatedOperat
                    (self.skipCertificateProvisioning || CertificateManager.shared.activeCertificate != nil)
                 {
                     session.anisetteData = try await self.getAnisetteData(for: session)
+                    // focusmaxxing hub: make sure apple still accepts this session before anything
+                    // relies on it (see renewedIfStale below)
+                    session = await self.renewedIfStale(session)
                     let certToUse = CertificateManager.shared.activeCertificate?.certificate
-                    
+
                     self.debugLog("[Authentication] Using cached session, team, certificate")
                     result = AuthenticationResult(
                         team: team, 
@@ -259,6 +262,35 @@ final class AuthenticationOperation: BaseStandaloneOperation<AuthenticatedOperat
         }
     }
     
+    // focusmaxxing hub: apple's session goes stale after a while, and the hub used to reuse the
+    // one it kept in memory without looking; the next install then failed with "Your session
+    // has expired. Please log in. (1100)" and nothing signed in again until the hub was closed
+    // fully. so the cached session is tried once, with the cheapest portal request there is, and
+    // if apple refuses it the hub signs in again silently with the token or the password it
+    // keeps in the keychain, with no screen. if even that fails the old session is kept, so a
+    // network glitch behaves exactly as before: the install fails with the real error.
+    private func renewedIfStale(_ session: ALTAppleAPISession) async -> ALTAppleAPISession {
+        do {
+            _ = try await AuthManager.shared.fetchAccount(session: session)
+            return session
+        } catch {
+            self.debugLog("[Authentication] apple refused the cached session, signing in again silently: \(error)")
+        }
+
+        do {
+            if let renewed = try await self.silentSignIn() {
+                let freshSession = renewed.1
+                AuthManager.shared.session = freshSession
+                self.debugLog("[Authentication] signed in again silently; using the new session")
+                return freshSession
+            }
+            self.debugLog("[Authentication] silent sign-in gave no session; keeping the cached one")
+        } catch {
+            self.debugLog("[Authentication] silent sign-in failed; keeping the cached session: \(error)")
+        }
+        return session
+    }
+
     private func silentSignIn() async throws -> (ALTAccount, ALTAppleAPISession)? {
         // Try silent auth using Keychain Token
         if let adsid = AuthManager.shared.adsid, 

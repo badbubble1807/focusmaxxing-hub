@@ -49,6 +49,12 @@ const stamp = () => new Date().toTimeString().slice(0, 8);
     const src = await api("GET", `/repos/${SOURCE_REPO}/releases/tags/${file.tag}`);
     const asset = ((src.json && src.json.assets) || []).find(a => a.name === file.name);
     if (!asset) { console.error("no", file.name, "on the", file.tag, "release"); process.exit(1); }
+    // the build number: the cloud build writes "build number N" into the release notes. the hub compares it
+    // (as buildVersion) against the build it installed, which is how a tile knows to say Update; the apps'
+    // own version numbers are instagram's and youtube's and never change with a rebuild.
+    const build = (((src.json && src.json.body) || "").match(/build number (\d+)/) || [])[1];
+    if (!build) { console.error("no 'build number N' in the notes of the", file.tag, "release"); process.exit(1); }
+    console.log(stamp(), file.name, "is build", build, "from", asset.updated_at);
     if (!fs.existsSync(local) || fs.statSync(local).size !== asset.size) {
       console.log(stamp(), "downloading", file.name, Math.round(asset.size / 1e6), "MB");
       const r = await fetch(asset.url, { headers: { ...auth, Accept: "application/octet-stream" } });
@@ -72,18 +78,26 @@ const stamp = () => new Date().toTimeString().slice(0, 8);
       if (up.status !== 201) { console.error("upload failed:", up.status, up.text.slice(0, 300)); process.exit(1); }
       console.log(stamp(), "uploaded", file.name, "->", up.json.browser_download_url);
     }
-    results.push({ name: file.name, size: bytes.length, sha256 });
+    results.push({ name: file.name, size: bytes.length, sha256, build, date: asset.updated_at });
   }
 
-  // 3. write the real sizes and checksums into the app list
+  // 3. write the build number, date, real size and checksum into the app list
   const listFile = path.join(__dirname, "..", "..", "source", "apps.json");
   const list = JSON.parse(fs.readFileSync(listFile, "utf8"));
   for (const app of list.apps) {
     for (const version of app.versions || []) {
       const hit = results.find(r => version.downloadURL.endsWith("/" + r.name));
-      if (hit) { version.size = hit.size; version.sha256 = hit.sha256; }
+      if (!hit) continue;
+      version.buildVersion = String(hit.build);
+      version.date = hit.date.replace(/\.\d{3}Z$/, "Z");
+      version.size = hit.size;
+      version.sha256 = hit.sha256;
+      // the notes start "Instagram build 8." / "YouTube app build 5."; keep the wording, move the number
+      version.localizedDescription = (version.localizedDescription || "").replace(/\bbuild \d+\b/, "build " + hit.build);
+      if (!/\bbuild \d+\b/.test(version.localizedDescription)) version.localizedDescription = app.name + " build " + hit.build + ".";
+      console.log(stamp(), app.name, "->", version.version, "build", version.buildVersion);
     }
   }
   fs.writeFileSync(listFile, JSON.stringify(list, null, 2) + "\n");
-  console.log(stamp(), "apps.json updated with sizes and checksums");
+  console.log(stamp(), "apps.json updated with build numbers, sizes and checksums");
 })().catch(e => { console.error("error:", e.message); process.exit(1); });

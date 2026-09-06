@@ -113,7 +113,8 @@
           "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-instagram.ipa",
           "size": 257472829,
           "minOSVersion": "15.0",
-          "sha256": "95263ae9e8e306afc4cd66d6a8761f1f73c38a30b17eb12daae5fe132f9d3204"
+          "sha256": "95263ae9e8e306afc4cd66d6a8761f1f73c38a30b17eb12daae5fe132f9d3204",
+          "buildVersion": "8"
         }
       ],
       "appPermissions": {
@@ -139,7 +140,8 @@
           "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-youtube-app.ipa",
           "size": 133023453,
           "minOSVersion": "15.0",
-          "sha256": "ff82b12ddd52317210a6bd092ceab573ef0e48e808bdd72a391d569beeb4d62f"
+          "sha256": "ff82b12ddd52317210a6bd092ceab573ef0e48e808bdd72a391d569beeb4d62f",
+          "buildVersion": "5"
         }
       ],
       "appPermissions": {

@@ -22,6 +22,10 @@ Our own code is in [`SideStore/Focusmaxxing/`](SideStore/Focusmaxxing/) and [`Al
 - Settings: the Patreon, alternate-icon, tutorial and beta-channel sections are hidden; a **Legal** section with one row, *Open source & licensing*, opens the licensing page; feedback goes to this repository's issues.
 - SideStore's own workflows, issue templates and alternate icons are removed; one workflow, **build hub**, replaces them.
 - Every address the app talks to is in [`SideStore/FMXLinks.swift`](SideStore/FMXLinks.swift).
+- Before the hub reuses the Apple sign-in it keeps in memory, it checks that Apple still accepts it, and if not it signs in again silently with what is in the keychain. SideStore reused the session without looking, so once it had gone stale every install failed with "Your session has expired" until the app was closed fully.
+- App downloads use a background session, so they keep going when the hub is left, and the line under the app's name on its tile says "Downloading 43%" and then "Installing…" while an install runs.
+- A tile says **Update** when the app list carries a newer build number (`buildVersion`). The custom apps keep Instagram's and YouTube's own version numbers, which never change with a rebuild, so SideStore's version comparison alone never noticed a new build. [`scripts/fmx/publish-apps.js`](scripts/fmx/publish-apps.js) writes the build number into the list.
+- At every launch the hub removes any source other than its own list. A hub installed over SideStore inherited SideStore's source, which failed to load at each launch ("Some sources were unable to load") and held a second entry for the hub itself.
 
 Everything else, the signing, the pairing with the helper, the background refresh, is SideStore's, unchanged, pinned at commit `a6ca4d1620e619158fa27d4e652e1f865b461f8b` (the 2026-09-05 nightly).
 
