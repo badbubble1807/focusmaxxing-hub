@@ -108,12 +108,12 @@
       "versions": [
         {
           "version": "445.0.0",
-          "date": "2026-09-05T00:00:00Z",
-          "localizedDescription": "Instagram build 6.",
+          "date": "2026-09-06T13:03:22Z",
+          "localizedDescription": "Instagram build 8. The switches now live in Focusmaxxing Hub; the app reads them when opened.",
           "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-instagram.ipa",
-          "size": 255772225,
+          "size": 257472829,
           "minOSVersion": "15.0",
-          "sha256": "1d0c2672f1d8fa6041b6d8a615e4c1e7b933ab76ce9ecb89c9a9895031a76cde"
+          "sha256": "95263ae9e8e306afc4cd66d6a8761f1f73c38a30b17eb12daae5fe132f9d3204"
         }
       ],
       "appPermissions": {
@@ -134,12 +134,12 @@
       "versions": [
         {
           "version": "21.35.3",
-          "date": "2026-09-05T00:00:00Z",
-          "localizedDescription": "YouTube app build 3.",
+          "date": "2026-09-06T13:04:25Z",
+          "localizedDescription": "YouTube app build 5. The switches now live in Focusmaxxing Hub; the app reads them when opened.",
           "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/apps/focusmaxxing-youtube-app.ipa",
-          "size": 133032906,
+          "size": 133023453,
           "minOSVersion": "15.0",
-          "sha256": "04fab712e9f3c81f8912dac76b6f9fb3e33dca23abf7fb4cfe17ddb8b37ec105"
+          "sha256": "ff82b12ddd52317210a6bd092ceab573ef0e48e808bdd72a391d569beeb4d62f"
         }
       ],
       "appPermissions": {
