@@ -393,9 +393,10 @@ private extension BrowseViewController
         if let source = self.source
         {
             tintColor = source.effectiveTintColor?.adjustedForDisplay ?? .altPrimary
-            
-            self.title = source.name
-                        
+
+            // focusmaxxing hub: the built-in list is the "Apps" tab, not a source with a name
+            self.title = self.isFocusmaxxingList ? "Apps" : source.name
+
             self.titleSourceIconView.backgroundColor = tintColor
             self.titleSourceIconView.isHidden = false
             

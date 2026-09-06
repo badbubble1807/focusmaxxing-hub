@@ -297,9 +297,9 @@ extension AppBannerView
                 }
                 else
                 {
-                    // Free app
-                    
-                    let buttonTitle = NSLocalizedString("Free", comment: "")
+                    // Free app. focusmaxxing hub: the button says what it does, not what it costs
+
+                    let buttonTitle = NSLocalizedString("Install", comment: "")
                     self.button.setTitle(buttonTitle.uppercased(), for: .normal)
                     self.button.accessibilityLabel = String(format: NSLocalizedString("Download %@", comment: ""), app.name)
                     self.button.accessibilityValue = buttonTitle
