@@ -218,10 +218,14 @@ final class InstallAppOperation: BasePipelineOperation<InstallAppOperationContex
                                 context: backgroundContext
                             )
         if !Self.isDifferentSideStoreContainer(installedApp, resignedAppBundle) {
+            // focusmaxxing hub: a pipeline with no download (change icon, deactivate and activate, backup,
+            // restore, the automatic deactivation at the three-app limit) has no source version, so
+            // storeBuildVersion arrives nil; keep the build number the record already has, or the tile
+            // says Update again for the build that is installed (InstalledApp.hasUpdate)
             installedApp.update(
                 resignedAppBundle: resignedAppBundle,
                 certificateSerialNumber: certificate.serialNumber,
-                storeBuildVersion: storeBuildVersion
+                storeBuildVersion: storeBuildVersion ?? installedApp.storeBuildVersion
             )
             installedApp.certificateStatus = self.context.targetCertStatus ?? installedApp.certificateStatus
             installedApp.customBundleIdentifier = context.customBundleIdentifier

@@ -144,12 +144,17 @@ final class VerifyAppOperation: BasePipelineOperation<InstallAppOperationContext
     }
     
     private func verifyDownloadedVersion(of appBundle: ALTApplication, @AsyncManaged matches appVersion: AppVersion) async throws {
-        let (version, buildVersion) = await $appVersion.perform {
-            ($0.version, $0.buildVersion)
+        let (version, buildVersion, sourceID) = await $appVersion.perform {
+            ($0.version, $0.buildVersion, $0.sourceID)
         }
-        
+
         // marketplace buildVersion validation
-        if let buildVersion {
+        // focusmaxxing hub: in our own list, buildVersion is the focusmaxxing build number (8, 9, ...),
+        // which the hub compares with the build it installed to know when a tile says Update
+        // (InstalledApp.hasUpdate). it is not the app's own CFBundleVersion, which stays instagram's
+        // or youtube's, so this comparison is skipped for our list only. the file itself has already
+        // been checked against the sha256 in the list.
+        if let buildVersion, sourceID != Source.altStoreIdentifier {
             guard buildVersion == appBundle.buildVersion else {
                 throw VerificationError.mismatchedBuildVersion(appBundle.buildVersion, expectedVersion: buildVersion, app: appBundle)
             }
