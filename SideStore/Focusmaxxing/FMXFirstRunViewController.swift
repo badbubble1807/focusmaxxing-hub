@@ -221,9 +221,11 @@ final class FMXFirstRunViewController: UIViewController {
                 self.button.isEnabled = true
                 switch result {
                 case .failure(let error) where error is CancellationError:
-                    break
+                    // the sign-in may still have gone through before a later check failed; re-read the state
+                    self.show(step: 2)
                 case .failure(let error):
                     ToastView(error: error).show(in: self)
+                    self.show(step: 2)
                 case .success:
                     self.show(step: 3)
                 }
