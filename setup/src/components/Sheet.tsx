@@ -1,7 +1,14 @@
 // a dialog on top of the screen, drawn with the design system's .sheet classes. sheets stack
 // (the advanced sheet under its log sheet under an error); Escape closes only the top one.
+//
+// every sheet is drawn at the top of the page, not where it is written. a sheet covers the window
+// with "position: fixed", but a card wrapping it takes that over (the design system's .card has a
+// backdrop blur, and any blur, filter or transform makes the element the boundary for fixed
+// children instead of the window). the pairing sheet sits inside the phone card and the code sheet
+// inside the apple id card, so both were squashed into a black bar inside their card until this.
 
 import { ReactNode, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 const openStack: symbol[] = [];
 
@@ -46,7 +53,7 @@ export const Sheet = ({
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+  return createPortal(
     <div
       className="sheet-backdrop"
       style={zIndex ? { zIndex } : undefined}
@@ -66,6 +73,7 @@ export const Sheet = ({
         <div className="sheet-body">{children}</div>
         {foot && <div className="sheet-foot">{foot}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
