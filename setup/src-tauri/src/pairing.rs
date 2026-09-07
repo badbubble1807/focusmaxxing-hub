@@ -140,12 +140,15 @@ async fn generate_rppairing(
     Ok(pairing_file)
 }
 
-// writes the pairing file into an app's Documents folder on the phone
+// writes a file into an app's Documents folder on the phone. two things go this way now, the
+// pairing file and the signing certificate, so `what` says which one in plain words - it is the
+// only thing the customer sees when the write fails.
 pub async fn place_file(
-    pairing: Vec<u8>,
+    contents: Vec<u8>,
     provider: &dyn IdeviceProvider,
     bundle_id: String,
     path: String,
+    what: &str,
 ) -> Result<(), AppError> {
     let house_arrest_client = HouseArrestClient::connect(provider).await.map_err(|e| {
         AppError::HouseArrest("Failed to connect to house arrest".into(), e.to_string())
@@ -173,12 +176,12 @@ pub async fn place_file(
         )
         .await
         .map_err(|e| {
-            AppError::HouseArrest("Failed to open file on device".into(), e.to_string())
+            AppError::HouseArrest(format!("Failed to create {what} on the phone"), e.to_string())
         })?;
 
-    file.write_entire(&pairing)
+    file.write_entire(&contents)
         .await
-        .map_err(|e| AppError::HouseArrest("Failed to write pairing file".into(), e.to_string()))?;
+        .map_err(|e| AppError::HouseArrest(format!("Failed to write {what} to the phone"), e.to_string()))?;
     file.close()
         .await
         .map_err(|e| AppError::HouseArrest("Failed to close file".into(), e.to_string()))?;

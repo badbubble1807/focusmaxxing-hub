@@ -162,6 +162,7 @@ pub async fn install_hub_operation(
             &provider,
             bundle_id.clone(),
             HUB_PAIRING_FILE.to_string(),
+            "the pairing file",
         )
         .await,
     )?;
@@ -272,7 +273,14 @@ async fn hand_certificate_to_hub(
         .to_writer_xml(&mut bytes)
         .map_err(|e| AppError::Misc(format!("Failed to write out the certificate file: {e}")))?;
 
-    place_file(bytes, provider, bundle_id, HUB_CERTIFICATE_FILE.to_string()).await?;
+    place_file(
+        bytes,
+        provider,
+        bundle_id,
+        HUB_CERTIFICATE_FILE.to_string(),
+        "the signing certificate",
+    )
+    .await?;
     info!("handed the signing certificate (serial {serial}) to the hub");
 
     Ok(())
