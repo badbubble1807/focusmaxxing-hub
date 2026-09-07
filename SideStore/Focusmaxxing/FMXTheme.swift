@@ -69,17 +69,19 @@ enum FMXTheme {
     static let radiusSmall: CGFloat = 14        // --radius-sm
     static let radiusTiny: CGFloat = 10         // --radius-xs
 
-    /// how far in from the edge of the screen the words inside a card start: the inset grouped
-    /// table pushes its cards in, and the card pushes its own contents in again. a heading laid
-    /// out with this lines up with the rows underneath it.
-    static let rowInset: CGFloat = 36
+    /// how far in a heading's words start from the edge of its own view. the table gives a section
+    /// heading the same width as the cards below it - both are already pushed in from the screen -
+    /// so all that is left to match is the margin the card puts round its own contents.
+    static let rowInset: CGFloat = 16
 
     // MARK: putting it on
 
     /// called once at launch. the hub has one colour, so anything a customer's phone remembers
-    /// from before this fork (SideStore let people pick one) is put back to it.
+    /// from before this fork (SideStore let people pick one) is put back to it; and Manrope is
+    /// made sure of before the first screen is drawn.
     static func apply() {
         ThemeManager.shared.resetToDefault()
+        FMXFont.registerIfNeeded()
     }
 
     /// the bar at the bottom: the ink, the accent on what is selected.
@@ -90,10 +92,12 @@ enum FMXTheme {
         appearance.shadowColor = FMXTheme.hairline
 
         // a badge is drawn on the accent, and a number written in white on a bright colour cannot
-        // be read - the same rule the toasts follow
+        // be read - the same rule the toasts follow. the labels are Manrope like everything else.
         for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
             layout.normal.badgeTextAttributes = [.foregroundColor: FMXTheme.onInk]
             layout.selected.badgeTextAttributes = [.foregroundColor: FMXTheme.onInk]
+            layout.normal.titleTextAttributes = [.font: FMXFont.of(10, .semibold), .foregroundColor: FMXTheme.faint]
+            layout.selected.titleTextAttributes = [.font: FMXFont.of(10, .bold), .foregroundColor: FMXTheme.teal]
         }
 
         tabBar.standardAppearance = appearance
@@ -105,9 +109,12 @@ enum FMXTheme {
     /// the bar at the top of one of our own screens: nothing until the list scrolls under it,
     /// then the ink with a hairline.
     static func style(navigationItem: UINavigationItem) {
-        let title: [NSAttributedString.Key: Any] = [.foregroundColor: FMXTheme.text]
+        // 28 rather than the system's 34: the longest title on the phone is "Focusmaxxing mobile",
+        // and a large title does not shrink to fit - it simply runs out of bar and truncates
+        let title: [NSAttributedString.Key: Any] = [.foregroundColor: FMXTheme.text,
+                                                    .font: FMXFont.of(17, .bold)]
         let largeTitle: [NSAttributedString.Key: Any] = [.foregroundColor: FMXTheme.text,
-                                                         .font: UIFont.systemFont(ofSize: 34, weight: .bold)]
+                                                         .font: FMXFont.of(28, .heavy)]
 
         let edge = UINavigationBarAppearance()
         edge.configureWithTransparentBackground()

@@ -109,16 +109,15 @@ open class RSTToastView: UIControl {
         dimmingView.isHidden = true
         self.addSubview(dimmingView, pinningEdgesWith: .zero)
         
-        let detailTextLabelFontDescriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .subheadline)
-        let textLabelFontDescriptor = detailTextLabelFontDescriptor.withSymbolicTraits(.traitBold) ?? detailTextLabelFontDescriptor
         
-        textLabel.font = UIFont(descriptor: textLabelFontDescriptor, size: 0)
+        // focusmaxxing hub: Manrope, like every other word in the product
+        textLabel.font = FMXFont.of(15, .bold)
         textLabel.textColor = .white
         textLabel.minimumScaleFactor = 0.75
         textLabel.numberOfLines = 0
         textLabel.addObserver(self, forKeyPath: "text", options: .old, context: &toastViewContext)
         
-        detailTextLabel.font = UIFont(descriptor: detailTextLabelFontDescriptor, size: 0)
+        detailTextLabel.font = FMXFont.of(13, .regular)
         detailTextLabel.textColor = .white
         detailTextLabel.minimumScaleFactor = 0.75
         detailTextLabel.numberOfLines = 0

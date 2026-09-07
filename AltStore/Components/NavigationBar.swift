@@ -52,17 +52,26 @@ class NavigationBar: UINavigationBar
         edgeAppearance.configureWithOpaqueBackground()
         edgeAppearance.backgroundColor = self.barTintColor
         edgeAppearance.shadowColor = nil
-        
+
+        // focusmaxxing hub: the words go on whatever the bar's colour turns out to be. they used
+        // to be set only when a bar had a tint of its own, and only one storyboard bar has one -
+        // so the titles on Apps, My apps, Settings and the app detail were left in Apple's font
+        // while the rest of the product is in Manrope. 28 for a large title, not the system's 34,
+        // because the longest one here is "Focusmaxxing mobile" and a large title truncates rather
+        // than shrinking; it is the same recipe as FMXTheme.style(navigationItem:).
+        let textAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: FMXTheme.text,
+                                                             .font: FMXFont.of(17, .bold)]
+        let largeTextAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: FMXTheme.text,
+                                                                  .font: FMXFont.of(28, .heavy)]
+
+        standardAppearance.titleTextAttributes = textAttributes
+        standardAppearance.largeTitleTextAttributes = largeTextAttributes
+        edgeAppearance.titleTextAttributes = textAttributes
+        edgeAppearance.largeTitleTextAttributes = largeTextAttributes
+
         if let tintColor = self.barTintColor
         {
-            let textAttributes = [NSAttributedString.Key.foregroundColor: UIColor.white]
-            
             standardAppearance.backgroundColor = tintColor
-            standardAppearance.titleTextAttributes = textAttributes
-            standardAppearance.largeTitleTextAttributes = textAttributes
-            
-            edgeAppearance.titleTextAttributes = textAttributes
-            edgeAppearance.largeTitleTextAttributes = textAttributes
         }
         else
         {

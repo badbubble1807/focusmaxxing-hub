@@ -52,15 +52,14 @@ class AppCardCollectionViewCell: UICollectionViewCell
         self.bannerView = AppBannerView(frame: .zero)
         self.bannerView.layoutMargins.bottom = 0
         
-        #if !os(tvOS)
-        let vibrancyEffect = UIVibrancyEffect(blurEffect: UIBlurEffect(style: .systemChromeMaterial), style: .secondaryLabel)
-        #else
-        let vibrancyEffect = UIVibrancyEffect(blurEffect: UIBlurEffect(style: .regular))
-        #endif
-        let captionVibrancyView = UIVisualEffectView(effect: vibrancyEffect)
-        
+        // focusmaxxing hub: no vibrancy over our own card - it would wash the caption towards the
+        // material behind it, and no colour set below would survive
+        let captionVibrancyView = UIVisualEffectView(effect: nil)
+
         self.captionLabel = UILabel(frame: .zero)
-        self.captionLabel.font = UIFont(descriptor: UIFontDescriptor.preferredFontDescriptor(withTextStyle: .footnote).bolded(), size: 0)
+        self.captionLabel.font = FMXFont.of(13, .bold)
+        // the vibrancy used to give this label its colour; with the vibrancy gone it needs one
+        self.captionLabel.textColor = FMXTheme.muted
         self.captionLabel.textAlignment = .center
         self.captionLabel.numberOfLines = 2
         self.captionLabel.minimumScaleFactor = 0.8

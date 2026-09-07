@@ -91,10 +91,10 @@ final class FMXFirstRunViewController: UIViewController {
             self.bars.addArrangedSubview(bar)
         }
 
-        self.stepLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        self.stepLabel.font = FMXFont.of(13, .bold)
         self.stepLabel.textColor = FMXTheme.faint
 
-        self.sentenceLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        self.sentenceLabel.font = FMXFont.of(28, .heavy)
         self.sentenceLabel.textColor = FMXTheme.text
         self.sentenceLabel.numberOfLines = 0
 
@@ -103,7 +103,7 @@ final class FMXFirstRunViewController: UIViewController {
         self.noteCard.layer.borderWidth = 1
         self.noteCard.layer.borderColor = FMXTheme.hairline.cgColor
 
-        self.noteLabel.font = .systemFont(ofSize: 14, weight: .regular)
+        self.noteLabel.font = FMXFont.of(14, .regular)
         self.noteLabel.textColor = FMXTheme.muted
         self.noteLabel.numberOfLines = 0
         self.noteLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -114,7 +114,7 @@ final class FMXFirstRunViewController: UIViewController {
         self.doneMark.contentMode = .scaleAspectFit
         self.doneMark.setContentHuggingPriority(.required, for: .horizontal)
 
-        self.doneLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        self.doneLabel.font = FMXFont.of(15, .semibold)
         self.doneLabel.textColor = FMXTheme.accentText
         self.doneLabel.numberOfLines = 0
 

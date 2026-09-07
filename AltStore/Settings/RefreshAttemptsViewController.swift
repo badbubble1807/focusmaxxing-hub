@@ -32,6 +32,10 @@ final class RefreshAttemptsViewController: UITableViewController
     {
         super.viewDidLoad()
         
+        // focusmaxxing hub: the same bar and ground as the screen it is pushed from
+        FMXTheme.style(navigationItem: self.navigationItem)
+        FMXTheme.style(tableView: self.tableView)
+
         self.tableView.dataSource = self.dataSource
         self.dataSource.contentView = self.tableView
     }
@@ -64,7 +68,7 @@ private extension RefreshAttemptsViewController
         }
         
         let placeholderView = RSTPlaceholderView()
-        placeholderView.textLabel.text = NSLocalizedString("No Refresh Attempts", comment: "")
+        placeholderView.textLabel.text = NSLocalizedString("No refresh attempts", comment: "")
         placeholderView.detailTextLabel.text = NSLocalizedString("The more you use Focusmaxxing Hub, the more often iOS will allow it to refresh apps in the background.", comment: "")
         dataSource.placeholderView = placeholderView
         

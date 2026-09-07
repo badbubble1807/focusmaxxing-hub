@@ -2,26 +2,30 @@
 //  FMXAdultViewController.swift
 //  Focusmaxxing Hub
 //
-//  the adult-websites screen, opened from the first row of the switches screen.
+//  the NSFW screen, opened from the first row of the switches screen.
 //
-//  the switch at the top, then one plain list of things to do, then the awkward cases at the
-//  bottom. see FMXAdultBlock.swift for why the hub cannot do the blocking itself.
+//  the switch at the top, then two steps, then the awkward cases at the bottom. see
+//  FMXAdultBlock.swift for why the hub cannot do the blocking itself.
 //
-//  written the first way (two named "steps", the caveats mixed into the instructions) it was
-//  tested on the owner's phone 2026-09-07 and it worked, but their words were: "wasn't always
-//  that intuitive, I had to use my brain more", "I have no clue what I'm setting up", "all that
-//  jargon below it I find it hard to understand". so: one numbered list from start to finish, the
-//  jargon cut, and everything that is only true sometimes moved out of the path and into
-//  "If something looks wrong" at the bottom.
+//  this screen has now been cut twice by the owner, both times for the same reason.
+//  2026-09-07, after doing it on their own phone: "wasn't always that intuitive, I had to use my
+//  brain more", "I have no clue what I'm setting up", "all that jargon below it I find it hard to
+//  understand". 2026-09-08, looking at the rewrite: "theres just SO MUCH text bro ... a beginners
+//  gonna get overwhelmed by all this text, im literally just setting up nsfw blocks by setting up
+//  screen time and installing private [dns]".
 //
-//  the tick is the customer's own note. the hub has no way to read screen time or the phone's
-//  installed profiles, and the screen says so rather than pretending to have checked. until it is
-//  ticked, the row on the switches screen is grey, not green, because nothing is blocked yet.
+//  so the shape is now: two numbered steps, each with its own button at the top of it and no line
+//  longer than one sentence. Everything that is only true sometimes is at the bottom under "If
+//  something looks wrong". If you are tempted to add a paragraph here, put it there instead - or
+//  leave it out.
+//
+//  the tick is the customer's own note. the hub has no way to read screen time, and the screen
+//  says so in one line rather than pretending to have checked. until it is ticked, the row on the
+//  switches screen is grey, not green, because nothing is blocked yet.
 //
 //  the screen time wording is apple's own, from the iphone user guide for ios 26 ("Content &
 //  Privacy Restrictions", then "App Store, Media, Web, & Games", then "Web Content", then "Limit
-//  Adult Websites"). the middle row used to be called "Content Restrictions"; if apple moves it
-//  again, the steps here are what needs updating.
+//  Adult Websites"). if apple moves it again, these steps are what needs updating.
 //
 
 import UIKit
@@ -29,7 +33,8 @@ import UIKit
 final class FMXAdultViewController: UITableViewController {
     private enum Section: Int, CaseIterable {
         case theSwitch
-        case setUp
+        case screenTime
+        case dns
         case trouble
     }
 
@@ -52,7 +57,7 @@ final class FMXAdultViewController: UITableViewController {
 
     init() {
         super.init(style: .insetGrouped)
-        self.title = "Adult websites"
+        self.title = "Block NSFW"
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
@@ -62,7 +67,7 @@ final class FMXAdultViewController: UITableViewController {
         FMXTheme.style(navigationItem: self.navigationItem)
         FMXTheme.style(tableView: self.tableView)
         self.tableView.rowHeight = UITableView.automaticDimension
-        self.tableView.estimatedRowHeight = 60
+        self.tableView.estimatedRowHeight = 56
 
         NotificationCenter.default.addObserver(self, selector: #selector(resetWait), name: UIApplication.didEnterBackgroundNotification, object: nil)
     }
@@ -125,7 +130,7 @@ final class FMXAdultViewController: UITableViewController {
         cell.show(self.phase)
     }
 
-    // the words under the switch change once it is allowed
+    // the line under the switch changes once it is allowed
     private func reloadSwitchSection() {
         self.tableView.reloadSections(IndexSet(integer: Section.theSwitch.rawValue), with: .none)
     }
@@ -137,26 +142,22 @@ final class FMXAdultViewController: UITableViewController {
         case .theSwitch:
             return [.pill]
 
-        case .setUp:
-            var rows: [Row] = [
-                .note("Two things block adult sites on an iPhone: a setting Apple built into it, and a file that sends the phone's web lookups through a filtered server. Do both. It takes about five minutes."),
-
+        case .screenTime:
+            return [
                 .openSettings,
-                .step("Tap Open Settings, just above. It lands on this app's own page: tap back until you reach the main Settings list, then scroll down and tap Screen Time."),
-                .step("Tap Content & Privacy Restrictions, and turn it on."),
-                .step("Tap App Store, Media, Web, & Games."),
-                .step("Tap Web Content."),
+                .step("Tap back until you reach the main Settings list, then tap Screen Time."),
+                .step("Tap Content & Privacy Restrictions and turn it on."),
+                .step("Tap App Store, Media, Web, & Games, then Web Content."),
                 .step("Choose Limit Adult Websites."),
-                .step("Go back to Screen Time and tap Lock Screen Time Settings."),
-                .step("Set four digits. When it offers to set up recovery with your Apple Account, say yes: without that, a passcode you forget is very hard to undo."),
-                .step("Come back here and tap Install the private DNS, just below."),
+                .step("Back in Screen Time, tap Lock Screen Time Settings and set four digits."),
+            ]
 
+        case .dns:
+            var rows: [Row] = [
                 .installProfile,
-                .step("Your browser opens and downloads a file called Focusmaxxing family DNS. If it asks whether to allow it, tap Allow. In some browsers you have to tap the download yourself."),
-                .step("Open Settings. Tap Profile Downloaded, near the top."),
-                .step("Tap Install at the top right. Type the passcode you unlock the phone with, not the four digits you just made for Screen Time, then keep tapping Install until the phone says Done. Do this within eight minutes of the download."),
-                .note("The phone shows the profile in red as unsigned, and warns that the server can see what the phone looks up. Both are normal here: the filtering is the point, and the server is Cloudflare's."),
-
+                .step("Your browser downloads a file. Tap Allow if it asks."),
+                .step("Open Settings and tap Profile Downloaded, near the top."),
+                .step("Tap Install, type the passcode you unlock the phone with, and keep tapping Install."),
                 .checkDNS,
             ]
             if let line = self.dnsCheckLine {
@@ -168,10 +169,9 @@ final class FMXAdultViewController: UITableViewController {
         case .trouble:
             return [
                 .saveProfile,
-                .note("Use that only if your browser would not download the file. Save it, open the Files app, and tap it there."),
-                .note("If the phone acts as though it has no internet on some Wi-Fi, that network will not carry the filtered lookups. Settings, then General, then VPN, DNS & Device Management, then DNS, then Automatic switches it off. That is also how the block comes off, so it is friction, not a wall."),
-                .note("If the phone will not take the profile while you are away from home, that is Apple's Stolen Device Protection. Do it at home."),
-                .note("A VPN app, or iCloud Private Relay, can route around the filtered server."),
+                .note("Use that if your browser would not download the file. Save it, then tap it in the Files app."),
+                .note("No internet on some Wi-Fi? Settings, General, VPN, DNS & Device Management, DNS, Automatic. That is also how the block comes off."),
+                .note("A VPN app, or iCloud Private Relay, can go around it."),
             ]
         }
     }
@@ -190,8 +190,9 @@ final class FMXAdultViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let title: String
         switch Section(rawValue: section) {
-        case .theSwitch: title = "The switch"
-        case .setUp: title = "How to set it up"
+        case .theSwitch: return nil
+        case .screenTime: title = "Step 1: Screen Time"
+        case .dns: title = "Step 2: Private DNS"
         case .trouble: title = "If something looks wrong"
         case nil: return nil
         }
@@ -199,19 +200,22 @@ final class FMXAdultViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        return FMXSectionHeader.height
+        return Section(rawValue: section) == .theSwitch ? 8 : FMXSectionHeader.height
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch Section(rawValue: section) {
         case .theSwitch:
             if self.store.isBlocked(self.key) {
-                return "The switch does not block anything by itself: the setup below is the block. The switch is what makes you wait before you undo it."
+                return "The switch is the wait. The two steps below are what does the blocking."
             }
-            return "Allowed. Nothing on the phone changed when you did that. To take the block off for real, undo the setup below: set Web Content back to Unrestricted, and remove the profile."
+            return "Allowed here, but the phone is still set up. To really unblock, undo the two steps below."
 
-        case .setUp:
-            return "Focusmaxxing Hub can test the private DNS itself, with the button above. It cannot see your Screen Time settings: Apple does not let an app read those. So the tick is your own note, not a check."
+        case .screenTime:
+            return "Say yes when it offers recovery: a passcode you forget is very hard to undo."
+
+        case .dns:
+            return "The phone calls the profile unsigned and says the server can see what you look up. Both are normal — the server is Cloudflare's. The Hub can check this half, but not Screen Time, so the tick is your own note."
 
         case .trouble, nil:
             return nil
@@ -222,7 +226,7 @@ final class FMXAdultViewController: UITableViewController {
         guard let footer = view as? UITableViewHeaderFooterView else { return }
         var configuration = footer.defaultContentConfiguration()
         configuration.text = self.tableView(tableView, titleForFooterInSection: section)
-        configuration.textProperties.font = .systemFont(ofSize: 12.5, weight: .regular)
+        configuration.textProperties.font = FMXFont.of(12.5, .regular)
         configuration.textProperties.color = FMXTheme.faint
         configuration.textProperties.numberOfLines = 0
         footer.contentConfiguration = configuration
@@ -236,15 +240,14 @@ final class FMXAdultViewController: UITableViewController {
         switch row {
         case .pill:
             let cell = FMXSwitchCell(style: .default, reuseIdentifier: nil)
-            cell.titleLabel.text = "Adult websites"
-            cell.subLabel.text = "Screen Time and a private DNS"
+            cell.titleLabel.text = "Block NSFW"
             cell.show(self.phase)
             cell.onTap = { [weak self] in self?.pillTapped() }
             return cell
 
         case .step(let text):
             // the number is the position of this step among the steps of its own section; the
-            // asides and buttons in between are not counted, so the list reads 1, 2, 3 throughout
+            // buttons in between are not counted, so each step list reads 1, 2, 3
             let number = rows.prefix(indexPath.row + 1).filter { if case .step = $0 { return true } else { return false } }.count
             let cell = FMXStepCell(style: .default, reuseIdentifier: nil)
             cell.show(number: number, text: text)
@@ -265,10 +268,10 @@ final class FMXAdultViewController: UITableViewController {
             return FMXActionCell(title: "Save the file instead", symbol: "square.and.arrow.up")
 
         case .checkDNS:
-            return FMXActionCell(title: "Check the private DNS", symbol: "checkmark.shield")
+            return FMXActionCell(title: "Check it worked", symbol: "checkmark.shield")
 
         case .tick:
-            return FMXTickCell(title: "I've done all this", ticked: UserDefaults.standard.fmxAdultDone)
+            return FMXTickCell(title: "I've done both steps", ticked: UserDefaults.standard.fmxAdultDone)
         }
     }
 
@@ -320,28 +323,28 @@ final class FMXAdultViewController: UITableViewController {
         }
     }
 
-    // the one half of this the hub can actually check for itself. see FMXAdultBlock: it asks for a
-    // name cloudflare's family server refuses, and looks at what comes back.
+    // the one half the hub can actually check. see FMXAdultBlock: it asks for a name cloudflare's
+    // family server refuses, and looks at what comes back.
     private func checkDNS() {
         self.dnsCheckLine = "Checking…"
-        self.reloadSetUpSection()
+        self.reloadDNSSection()
 
         FMXAdultBlock.checkFamilyDNS { [weak self] result in
             guard let self else { return }
             switch result {
             case .filtered:
-                self.dnsCheckLine = "Working. This phone's lookups are going through the filtered server, so the second half is done. The Screen Time half is not something Focusmaxxing Hub can see."
+                self.dnsCheckLine = "Working. This phone's lookups go through the filtered server."
             case .notFiltered:
-                self.dnsCheckLine = "Not working yet. If you have only just installed the profile, give it a minute and check again. Otherwise the profile is not installed, or it is switched off in Settings, under General, then VPN, DNS & Device Management, then DNS."
+                self.dnsCheckLine = "Not working yet. If you have only just installed it, wait a minute and check again."
             case .noAnswer:
-                self.dnsCheckLine = "Could not check. The phone may be offline, or on a network that will not carry the lookup."
+                self.dnsCheckLine = "Could not check. The phone may be offline."
             }
-            self.reloadSetUpSection()
+            self.reloadDNSSection()
         }
     }
 
-    private func reloadSetUpSection() {
-        self.tableView.reloadSections(IndexSet(integer: Section.setUp.rawValue), with: .none)
+    private func reloadDNSSection() {
+        self.tableView.reloadSections(IndexSet(integer: Section.dns.rawValue), with: .none)
     }
 
     private func saveProfile(from cell: UITableViewCell?) {
@@ -374,11 +377,11 @@ private final class FMXStepCell: FMXCell {
         self.numberBox.layer.cornerRadius = 8
         self.numberBox.setContentHuggingPriority(.required, for: .horizontal)
 
-        self.numberLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .bold)
+        self.numberLabel.font = FMXFont.of(13, .heavy)
         self.numberLabel.textColor = FMXTheme.accentText
         self.numberLabel.textAlignment = .center
 
-        self.textView.font = .systemFont(ofSize: 15, weight: .regular)
+        self.textView.font = FMXFont.of(15, .regular)
         self.textView.textColor = FMXTheme.text
         self.textView.numberOfLines = 0
 
@@ -437,7 +440,7 @@ private final class FMXActionCell: FMXCell {
         self.icon.tintColor = FMXTheme.accentText
         self.icon.contentMode = .scaleAspectFit
 
-        self.label.font = .systemFont(ofSize: 16, weight: .semibold)
+        self.label.font = FMXFont.of(16, .bold)
         self.label.textColor = FMXTheme.accentText
         self.label.text = title
         self.label.numberOfLines = 0
@@ -484,7 +487,7 @@ private final class FMXTickCell: FMXCell {
         self.box.tintColor = ticked ? FMXTheme.volt : FMXTheme.faint
         self.box.contentMode = .scaleAspectFit
 
-        self.label.font = .systemFont(ofSize: 16, weight: ticked ? .semibold : .regular)
+        self.label.font = FMXFont.of(16, ticked ? .semibold : .regular)
         self.label.textColor = ticked ? FMXTheme.text : FMXTheme.muted
         self.label.text = title
         self.label.numberOfLines = 0

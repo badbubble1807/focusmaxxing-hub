@@ -8,7 +8,9 @@
 
 @preconcurrency import UIKit
 
-private let preferredFont = UIFont.boldSystemFont(ofSize: 14)
+// focusmaxxing hub: a file-scope let, so it is worked out the first time it is asked for -
+// which is after FMXFont has made sure Manrope is registered
+private let preferredFont = FMXFont.of(14, .bold)
 
 class VibrantButton: UIButton
 {

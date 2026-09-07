@@ -2,24 +2,26 @@
 //  FMXSwitchesViewController.swift
 //  Focusmaxxing Hub
 //
-//  the switches screen. one row per switch, with the switch itself on the right: the volt
-//  gradient with the knob over is blocked, a plain grey track with the knob back is allowed. no
-//  on or off is written anywhere - the colour is the state, the same as the desktop popup. the
-//  control itself is FMXSwitchView in FMXControls.swift, drawn from the same numbers as the one
-//  on the other two screens of this product.
+//  the phone's own screen: one row per switch, with the switch on the right. the volt gradient
+//  with the knob over is blocked, a plain grey track with the knob back is allowed. no on or off
+//  is written anywhere - the colour and the side the knob is on are the state, the same as the
+//  popup and the windows app. the control itself is FMXSwitchView in FMXControls.swift.
 //
 //  turning a block on is instant. turning one off costs the wait: the first tap turns the switch
 //  ember and counts the seconds down inside it, taps during the countdown are ignored, and at zero
 //  the row says "Tap to unblock" - a second tap unblocks. leaving this screen, or leaving the app,
 //  throws every countdown away.
 //
-//  each heading carries how much of that app is blocked, which is the badge the desktop app puts
-//  on a site with something blocked. at the bottom: the wait itself, 10 to 30 seconds, locked for
-//  24 hours after every change. a change lands the next time the app is opened; the footer says so.
+//  every word on this screen is the extension's word (2026-09-08, the owner: "literally rename
+//  everything to what my extension has"). the rows are `SITES[key].sub` from the desktop
+//  repository's sites.js, the first row is `SITES.nsfw.label`, and the countdown at the bottom is
+//  its "Unblocking countdown" card, note and lock line. Nothing explains itself twice: there are no
+//  second lines under the rows and no paragraphs under the groups, because there are none over
+//  there either.
 //
-//  the first section is the adult-websites row. it is not an app switch: the block itself lives in
-//  the phone's own settings, so the row only shows the state and opens FMXAdultViewController,
-//  which holds the switch, the wait and the steps.
+//  the first row is not an app switch: the block itself lives in the phone's own settings, so the
+//  row shows the state and opens FMXAdultViewController, which holds the switch, the wait and what
+//  to do.
 //
 
 import UIKit
@@ -42,7 +44,7 @@ final class FMXSwitchesViewController: UITableViewController {
 
     init() {
         super.init(style: .insetGrouped)
-        self.title = "Switches"
+        self.title = "Focusmaxxing mobile"
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
@@ -59,7 +61,7 @@ final class FMXSwitchesViewController: UITableViewController {
         FMXTheme.style(tableView: self.tableView)
 
         self.tableView.rowHeight = UITableView.automaticDimension
-        self.tableView.estimatedRowHeight = 64
+        self.tableView.estimatedRowHeight = 56
 
         // make sure the shared file exists even before anything has been touched
         self.store.export()
@@ -127,14 +129,14 @@ final class FMXSwitchesViewController: UITableViewController {
 
     private func refreshVisible() {
         for indexPath in self.tableView.indexPathsForVisibleRows ?? [] {
-            // the adult row has no countdown of its own (its screen holds it), so it is left alone
+            // the first row has no countdown of its own (its screen holds it), so it is left alone
             guard let section = Section(rawValue: indexPath.section), section != .wait, section != .adult,
                   let cell = self.tableView.cellForRow(at: indexPath) as? FMXSwitchCell else { continue }
             let sw = self.switches(in: section)[indexPath.row]
             cell.show(self.phase(for: sw.key))
         }
         self.refreshHeaders()
-        // the lock footer counts down too
+        // the lock line counts down too
         if let footer = self.tableView.footerView(forSection: Section.wait.rawValue) {
             self.style(footer: footer, section: Section.wait.rawValue)
         }
@@ -145,7 +147,7 @@ final class FMXSwitchesViewController: UITableViewController {
     private func style(footer: UITableViewHeaderFooterView, section: Int) {
         var configuration = footer.defaultContentConfiguration()
         configuration.text = self.tableView(self.tableView, titleForFooterInSection: section)
-        configuration.textProperties.font = .systemFont(ofSize: 12.5, weight: .regular)
+        configuration.textProperties.font = FMXFont.of(12.5, .regular)
         configuration.textProperties.color = FMXTheme.faint
         configuration.textProperties.numberOfLines = 0
         footer.contentConfiguration = configuration
@@ -177,12 +179,15 @@ final class FMXSwitchesViewController: UITableViewController {
         }
     }
 
+    // the extension's own two lines, word for word (popup.html and popup.js in the desktop
+    // repository), with "website switch" made to fit a phone
     private func waitFooter() -> String {
+        let note = "How long a switch makes you wait before it lets go. Blocking something is always instant."
         let left = self.store.waitLockRemaining
         if left > 0 {
-            return "The wait moves once a day. Locked for another \(self.store.formatDuration(left))."
+            return note + " Locked for another \(self.store.formatDuration(left)) — changing this is a decision too, so it only moves once a day."
         }
-        return "How long an unblock makes you wait. The wait moves once a day: change it and the slider locks for 24 hours."
+        return note + " You can change this now. Once you do, it locks for a day."
     }
 
     // MARK: table
@@ -202,10 +207,11 @@ final class FMXSwitchesViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let title: String
         switch Section(rawValue: section) {
-        case .adult: title = "The whole phone"
+        // the first row is its own heading, the way the popup's adult-content switch is
+        case .adult: return nil
         case .instagram: title = FMXApp.instagram.title
         case .youtube: title = FMXApp.youtube.title
-        case .wait: title = "The wait"
+        case .wait: title = "Unblocking countdown"
         case nil: return nil
         }
 
@@ -216,20 +222,15 @@ final class FMXSwitchesViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        return FMXSectionHeader.height
+        return Section(rawValue: section) == .adult ? 8 : FMXSectionHeader.height
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch Section(rawValue: section) {
-        case .adult:
-            return "This one is not inside an app. Tap the row: Focusmaxxing Hub cannot block a website by itself, so it walks you through the two settings on the phone that can."
-        case .instagram, .youtube:
-            let app = section == Section.instagram.rawValue ? FMXApp.instagram : FMXApp.youtube
-            return "Blocking is instant; unblocking makes you wait, and leaving this screen starts the wait over. Changes apply the next time \(app.title) is opened."
-        case .wait:
-            return self.waitFooter()
-        case nil:
-            return nil
+        // the one thing about the phone that is not true of the extension, said once
+        case .youtube: return "Changes apply the next time the app is opened."
+        case .wait: return self.waitFooter()
+        case .adult, .instagram, nil: return nil
         }
     }
 
@@ -243,21 +244,19 @@ final class FMXSwitchesViewController: UITableViewController {
 
         if section == .adult {
             // the same row as a switch, but the switch only shows the state: tapping anywhere opens
-            // the adult screen, where the switch, the countdown and the setup live together. the
-            // arrow is there because the owner's own test found the row did not look tappable.
+            // the screen where the switch, the countdown and the setup live together. the arrow is
+            // there because the owner's own test found the row did not look tappable.
             let cell = FMXSwitchCell(style: .default, reuseIdentifier: nil)
-            cell.titleLabel.text = "Adult websites"
+            cell.titleLabel.text = "Block NSFW"
             cell.accessoryType = .disclosureIndicator
             // this row goes somewhere, so it lights up under the finger. the switch rows keep
             // .none: a tap there flips a switch rather than opening anything.
             cell.selectionStyle = .default
             if UserDefaults.standard.fmxAdultDone {
-                cell.subLabel.text = "Screen Time and a private DNS"
                 cell.show(self.store.isBlocked(FMXAdultBlock.switchKey) ? .on : .off)
             } else {
                 // grey until the setup has been walked through: green here would claim a block
                 // that does not exist yet
-                cell.subLabel.text = "Not set up yet. Tap to set it up."
                 cell.showNotSetUp()
             }
             cell.onTap = { [weak self] in self?.openAdult() }
@@ -283,7 +282,6 @@ final class FMXSwitchesViewController: UITableViewController {
         let sw = self.switches(in: section)[indexPath.row]
         let cell = FMXSwitchCell(style: .default, reuseIdentifier: nil)
         cell.titleLabel.text = sw.label
-        cell.subLabel.text = sw.sub
         cell.show(self.phase(for: sw.key))
         cell.onTap = { [weak self] in self?.tapped(sw) }
         return cell
@@ -308,26 +306,26 @@ final class FMXSwitchesViewController: UITableViewController {
     }
 }
 
-// MARK: - the wait row
+// MARK: - the countdown row
 
 private final class FMXWaitCell: FMXCell {
-    let label = UILabel()
     let valueLabel = UILabel()
     let slider = UISlider()
+    let scale = UILabel()
     var onCommit: ((Int) -> Bool)?
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         self.selectionStyle = .none
 
-        self.label.font = .systemFont(ofSize: 16, weight: .semibold)
-        self.label.textColor = FMXTheme.text
-        self.label.text = "Unblock wait"
-
-        self.valueLabel.font = .monospacedDigitSystemFont(ofSize: 17, weight: .bold)
+        self.valueLabel.font = FMXFont.counting(20, .heavy)
         self.valueLabel.textColor = FMXTheme.accentText
-        self.valueLabel.textAlignment = .right
-        self.valueLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        // the popup shows the two ends under its slider; so does this
+        self.scale.font = FMXFont.of(11, .medium)
+        self.scale.textColor = FMXTheme.faint
+        self.scale.text = "\(FMXSwitchStore.minWait)s to \(FMXSwitchStore.maxWait)s"
+        self.scale.textAlignment = .right
 
         self.slider.minimumValue = Float(FMXSwitchStore.minWait)
         self.slider.maximumValue = Float(FMXSwitchStore.maxWait)
@@ -337,22 +335,22 @@ private final class FMXWaitCell: FMXCell {
         self.slider.addTarget(self, action: #selector(moved), for: .valueChanged)
         self.slider.addTarget(self, action: #selector(released), for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
-        for view in [self.label, self.valueLabel, self.slider] {
+        for view in [self.valueLabel, self.scale, self.slider] {
             view.translatesAutoresizingMaskIntoConstraints = false
             self.contentView.addSubview(view)
         }
         let margins = self.contentView.layoutMarginsGuide
         NSLayoutConstraint.activate([
-            self.label.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
-            self.label.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 13),
+            self.valueLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.valueLabel.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 12),
 
-            self.valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: self.label.trailingAnchor, constant: 8),
-            self.valueLabel.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
-            self.valueLabel.centerYAnchor.constraint(equalTo: self.label.centerYAnchor),
+            self.scale.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
+            self.scale.leadingAnchor.constraint(greaterThanOrEqualTo: self.valueLabel.trailingAnchor, constant: 8),
+            self.scale.firstBaselineAnchor.constraint(equalTo: self.valueLabel.firstBaselineAnchor),
 
             self.slider.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
             self.slider.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
-            self.slider.topAnchor.constraint(equalTo: self.label.bottomAnchor, constant: 8),
+            self.slider.topAnchor.constraint(equalTo: self.valueLabel.bottomAnchor, constant: 6),
             self.slider.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -12),
         ])
     }
@@ -360,7 +358,7 @@ private final class FMXWaitCell: FMXCell {
     required init?(coder: NSCoder) { fatalError("not used") }
 
     func show(seconds: Int) {
-        self.valueLabel.text = "\(seconds) s"
+        self.valueLabel.text = "\(seconds)s"
     }
 
     // locked for the day: the slider still shows where it stands, in grey, and will not move

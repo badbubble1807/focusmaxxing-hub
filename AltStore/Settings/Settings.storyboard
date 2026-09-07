@@ -1389,7 +1389,7 @@
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" id="sPX-D2-9uY">
                         <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <color key="backgroundColor" name="SettingsBackground"/>
                         <prototypes>
                             <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="Cell" id="8Xf-RE-QJx" customClass="RefreshAttemptTableViewCell">
                                 <rect key="frame" x="0.0" y="50" width="402" height="73.333335876464844"/>
@@ -1407,7 +1407,7 @@
                                                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Success" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="SWb-Of-t97">
                                                             <rect key="frame" x="0.0" y="0.0" width="67" height="20.333333333333332"/>
                                                             <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="17"/>
-                                                            <color key="textColor" systemColor="darkTextColor"/>
+                                                            <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                             <nil key="highlightedColor"/>
                                                         </label>
                                                         <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Date" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4MX-Qv-H8V">
@@ -1421,6 +1421,7 @@
                                                 <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Could not connect to Focusmaxxing Hub." textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7L1-AA-2yo">
                                                     <rect key="frame" x="0.0" y="24.333333333333336" width="362" height="19"/>
                                                     <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                                    <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                     <nil key="highlightedColor"/>
                                                 </label>
                                             </subviews>
@@ -1445,7 +1446,7 @@
                             <outlet property="delegate" destination="GBh-rB-juy" id="tEO-3w-jKt"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Refresh Attempts" largeTitleDisplayMode="never" id="V4e-K5-U8O"/>
+                    <navigationItem key="navigationItem" title="Refresh attempts" largeTitleDisplayMode="never" id="V4e-K5-U8O"/>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="jjJ-cb-fTb" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
@@ -1729,7 +1730,7 @@ Settings by i cons from the Noun Project</string>
                             <outlet property="delegate" destination="g8a-Rf-zWa" id="mbI-k7-Dqq"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Error Log" largeTitleDisplayMode="never" id="a1p-3W-bSi">
+                    <navigationItem key="navigationItem" title="Error log" largeTitleDisplayMode="never" id="a1p-3W-bSi">
                         <rightBarButtonItems>
                             <barButtonItem title="trash" id="BnQ-Eh-1gC">
                                 <imageReference key="image" image="trash" catalog="system" symbolScale="large"/>

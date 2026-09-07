@@ -17,12 +17,15 @@ final class InstalledAppsCollectionHeaderView: UICollectionReusableView
     {
         self.textLabel = UILabel()
         self.textLabel.translatesAutoresizingMaskIntoConstraints = false
-        self.textLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        // focusmaxxing hub: the same heading as every other group in the product
+        self.textLabel.font = FMXFont.of(19, .heavy)
+        self.textLabel.textColor = FMXTheme.text
         self.textLabel.accessibilityTraits.insert(.header)
         
         self.button = UIButton(type: .system)
         self.button.translatesAutoresizingMaskIntoConstraints = false
-        self.button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        self.button.titleLabel?.font = FMXFont.of(15, .bold)
+        self.button.setTitleColor(FMXTheme.teal, for: .normal)
         
         super.init(frame: frame)
         

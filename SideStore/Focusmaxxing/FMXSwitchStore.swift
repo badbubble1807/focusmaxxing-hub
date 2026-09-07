@@ -29,8 +29,7 @@ enum FMXApp: String, CaseIterable {
 
 struct FMXSwitch {
     let key: String      // the key the app reads, never shown
-    let label: String    // "Feed"
-    let sub: String      // what it blocks, one short line
+    let label: String    // what a person reads: "Disable feed"
     let app: FMXApp
 }
 
@@ -49,21 +48,26 @@ final class FMXSwitchStore {
     static let sharedFileName = "focusmaxxing-switches.plist"
 
     // one row per switch, same keys and order as the apps' own lists
-    // (mobile/instagram/src/Focusmaxxing/FMXInstagram.x and mobile/youtube/Sources/FMXYouTube.x)
+    // (mobile/instagram/src/Focusmaxxing/FMXInstagram.x and mobile/youtube/Sources/FMXYouTube.x).
+    //
+    // the words are the extension's, to the letter: each one is `SITES[key].sub` in the desktop
+    // repository's sites.js, which is what the popup and the windows app print on the same switch.
+    // one product, one set of names. the only one with no twin over there is Instagram's comments,
+    // which the extension does not have a switch for; it is written in the same shape as the rest.
     let switches: [FMXSwitch] = [
-        FMXSwitch(key: "igfeed",      label: "Feed",            sub: "Every post in the home feed",                                 app: .instagram),
-        FMXSwitch(key: "igreels",     label: "Reels",           sub: "The Reels tab, reels in the feed, the explore grid",           app: .instagram),
-        FMXSwitch(key: "igstories",   label: "Stories",         sub: "The stories row",                                             app: .instagram),
-        FMXSwitch(key: "ignotifs",    label: "Notifications",   sub: "The notifications button",                                    app: .instagram),
-        FMXSwitch(key: "igsuggested", label: "Suggestions",     sub: "Suggested posts, accounts, threads, chats and searches",      app: .instagram),
-        FMXSwitch(key: "igmessages",  label: "Messages",        sub: "The messages button and the notes row",                       app: .instagram),
-        FMXSwitch(key: "igcomments",  label: "Comments",        sub: "Comment buttons, counts and the comment box",                 app: .instagram),
+        FMXSwitch(key: "igfeed",      label: "Disable feed",              app: .instagram),
+        FMXSwitch(key: "igreels",     label: "Disable reels",             app: .instagram),
+        FMXSwitch(key: "igstories",   label: "Disable stories",           app: .instagram),
+        FMXSwitch(key: "ignotifs",    label: "Disable notifs",            app: .instagram),
+        FMXSwitch(key: "igsuggested", label: "Disable suggested for you", app: .instagram),
+        FMXSwitch(key: "igmessages",  label: "Disable messages",          app: .instagram),
+        FMXSwitch(key: "igcomments",  label: "Disable comments",          app: .instagram),
 
-        FMXSwitch(key: "ytrecs",      label: "Recommendations", sub: "Home, Shorts, Subscriptions, related and end-screen videos",  app: .youtube),
-        FMXSwitch(key: "ytcomments",  label: "Comments",        sub: "The comments under a video",                                  app: .youtube),
-        FMXSwitch(key: "ytnotifs",    label: "Notifications",   sub: "The bell",                                                    app: .youtube),
-        FMXSwitch(key: "ytscroll",    label: "Shorts scroll",   sub: "A Short plays on its own instead of the swipe-forever feed",  app: .youtube),
-        FMXSwitch(key: "ads",         label: "Ad blocker",      sub: "Video ads, Shorts ads, feed ads and premium nags",            app: .youtube),
+        FMXSwitch(key: "ytrecs",      label: "Disable recommendations",   app: .youtube),
+        FMXSwitch(key: "ytcomments",  label: "Disable comments",          app: .youtube),
+        FMXSwitch(key: "ytnotifs",    label: "Disable notifs",            app: .youtube),
+        FMXSwitch(key: "ytscroll",    label: "Disable Shorts scroll",     app: .youtube),
+        FMXSwitch(key: "ads",         label: "Block ads in YouTube",      app: .youtube),
     ]
 
     private let defaults = UserDefaults.standard

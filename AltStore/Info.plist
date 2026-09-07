@@ -218,6 +218,14 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Manrope-400.ttf</string>
+		<string>Manrope-500.ttf</string>
+		<string>Manrope-600.ttf</string>
+		<string>Manrope-700.ttf</string>
+		<string>Manrope-800.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

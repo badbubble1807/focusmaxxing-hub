@@ -43,11 +43,16 @@ final class InsetGroupTableViewCell: UITableViewCell
         self.selectionStyle = .none
         
         self.separatorView.translatesAutoresizingMaskIntoConstraints = false
-        self.separatorView.backgroundColor = UIColor.white.withAlphaComponent(0.25)
+        // focusmaxxing hub: the same card, hairline and radius as every other row in the product
+        self.separatorView.backgroundColor = FMXTheme.hairline
         self.addSubview(self.separatorView)
         
         self.insetView.layer.masksToBounds = true
-        self.insetView.layer.cornerRadius = 16
+        self.insetView.layer.cornerRadius = FMXTheme.radiusSmall
+        // card on ink is a two-shade difference, so a row on its own is given an edge. a row in
+        // a group is not: the border would run along every join and double up with the
+        // separator that is already there (update() decides, by style).
+        self.insetView.layer.borderColor = FMXTheme.hairline.cgColor
         
         // Get the preferred background color from Interface Builder.
         self.insetView.backgroundColor = self.backgroundColor
@@ -101,12 +106,17 @@ private extension InsetGroupTableViewCell
 {
     func update()
     {
+        // focusmaxxing hub: only a row that is a card on its own gets an edge drawn round it. a
+        // row in a group would draw that edge along the join with the row above and below, on top
+        // of the separator that is already there.
+        self.insetView.layer.borderWidth = (self.style == .single) ? 1 : 0
+
         switch self.style
         {
         case .single:
             self.insetView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
             self.separatorView.isHidden = true
-            
+
         case .top:
             self.insetView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
             self.separatorView.isHidden = false
@@ -122,11 +132,11 @@ private extension InsetGroupTableViewCell
         
         if self.isSelectable && (self.isHighlighted || self.isSelected)
         {
-            self.insetView.backgroundColor = UIColor.white.withAlphaComponent(0.55)
+            self.insetView.backgroundColor = FMXTheme.cardLifted
         }
         else
         {
-            self.insetView.backgroundColor = UIColor.white.withAlphaComponent(0.25)
+            self.insetView.backgroundColor = FMXTheme.card
         }
     }
 }

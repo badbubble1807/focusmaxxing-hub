@@ -374,25 +374,46 @@ private extension AppBannerView
     func update()
     {
         self.clipsToBounds = true
-        self.layer.cornerRadius = 22
-        
+        self.layer.cornerRadius = FMXTheme.radius
+
         let tintColor = self.originalTintColor ?? self.tintColor
         self.subtitleLabel.textColor = tintColor
-        
+
         switch self.style
         {
         case .app:
             self.directionalLayoutMargins.trailing = self.stackView.directionalLayoutMargins.trailing
-            
+
             self.iconImageViewHeightConstraint.constant = 60
             self.iconImageView.style = .icon
-            
-            self.titleLabel.textColor = .label
-            
+
+            // focusmaxxing hub: an app row is the same card as a switch row - the ink lifted a
+            // shade, a hairline round it, and the words in Manrope. what was here instead was a
+            // frosted pane tinted with the app's own brand colour, which is what made this tab
+            // look like somebody else's shop next to the rest of the product.
+            self.titleLabel.textColor = FMXTheme.text
+            self.titleLabel.font = FMXFont.of(16, .semibold)
+            self.subtitleLabel.textColor = FMXTheme.muted
+            self.subtitleLabel.font = FMXFont.of(13, .medium)
+
             self.button.style = .pill
-            
-            self.backgroundEffectView.contentView.backgroundColor = UIColor(resource: .blurTint)
-            self.backgroundEffectView.backgroundColor = tintColor
+
+            // the blur and the vibrancy have to go, not just be recoloured: vibrancy blends
+            // whatever colour a label is given towards the material behind it, so any colour set
+            // above would come out grey and the change would look like it had not happened
+            self.backgroundEffectView.effect = nil
+            self.vibrancyView.effect = nil
+            self.backgroundEffectView.contentView.backgroundColor = FMXTheme.card
+            self.backgroundEffectView.backgroundColor = nil
+
+            // the border goes on the effect view rather than on this one: in the Apps tab's tall
+            // card (AppCardCollectionViewCell) the effect view is re-parented to the whole cell
+            // while this banner is only the strip at the bottom of it, so a border here would
+            // draw a box round the top third of every card
+            self.backgroundEffectView.layer.cornerRadius = FMXTheme.radius
+            self.backgroundEffectView.layer.masksToBounds = true
+            self.backgroundEffectView.layer.borderWidth = 1
+            self.backgroundEffectView.layer.borderColor = FMXTheme.hairline.cgColor
             
         case .source:
             self.directionalLayoutMargins.trailing = 20

@@ -76,6 +76,10 @@ release-notes.md
 *.pdf
 *.txt
 
+# focusmaxxing hub: Manrope is under the SIL Open Font License, which asks that the licence travel
+# with the fonts. The rule above would have kept it out of the repository and out of the app.
+!AltStore/Resources/Manrope-OFL.txt
+
 Dependencies/minimuxer-*/
 .test/
 

@@ -201,15 +201,17 @@ final class SettingsViewController: UITableViewController
         super.viewDidLoad()
         
         #if !os(tvOS)
-        // --- iOS 26 fix ---
-        if #available(iOS 26.0, *) {
-            let appearance = UINavigationBarAppearance()
-            appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-            appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-            navigationController?.navigationBar.standardAppearance = appearance
-            navigationController?.navigationBar.scrollEdgeAppearance = appearance       // required for iOS 26, maybe enforce it in storyboard?
-        }
-        #endif 
+        // focusmaxxing hub: the same bar and the same ground as every other tab. this replaces an
+        // iOS 26 patch that set the title colour and nothing else.
+        FMXTheme.style(navigationItem: self.navigationItem)
+        FMXTheme.style(tableView: self.tableView)
+        // ...except for the padding over a heading: this screen keeps four hidden sections whose
+        // headers are one point tall, and 6 points over each of them opens gaps out of nowhere
+        self.tableView.sectionHeaderTopPadding = 0
+        // the name and version under the last group live in the table's own footer, which no
+        // row-by-row pass ever reaches
+        if let footer = self.tableView.tableFooterView { self.fmxRestyle(in: footer) }
+        #endif
         let nib = UINib(nibName: "SettingsHeaderFooterView", bundle: nil)
         self.prototypeHeaderFooterView = nib.instantiate(withOwner: nil, options: nil)[0] as? SettingsHeaderFooterView
         
@@ -321,8 +323,8 @@ private extension SettingsViewController
         let appVersionAttr = NSAttributedString(
             string: appVersion,
             attributes: [
-                .font: UIFont.systemFont(ofSize: 14),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.7),
+                .font: FMXFont.of(14, .regular),
+                .foregroundColor: FMXTheme.muted,
                 .paragraphStyle: paragraphStyle
             ]
         )
@@ -330,8 +332,8 @@ private extension SettingsViewController
         let iosVersionAttr = NSAttributedString(
             string: "\n" + iosVersion,
             attributes: [
-                .font: UIFont.systemFont(ofSize: 12),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.5),
+                .font: FMXFont.of(12, .regular),
+                .foregroundColor: FMXTheme.faint,
                 .paragraphStyle: paragraphStyle
             ]
         )
@@ -354,14 +356,14 @@ private extension SettingsViewController
         let attributed = NSMutableAttributedString(
             string: "Copied! ",
             attributes: [
-                .font: UIFont.systemFont(ofSize: 14),
-                .foregroundColor: UIColor.white.withAlphaComponent(0.7),
+                .font: FMXFont.of(14, .regular),
+                .foregroundColor: FMXTheme.muted,
                 .paragraphStyle: paragraphStyle
             ]
         )
         attributed.append(NSAttributedString(string: "✓", attributes: [
-            .font: UIFont.systemFont(ofSize: 14),
-            .foregroundColor: UIColor.systemGreen
+            .font: FMXFont.of(14, .bold),
+            .foregroundColor: FMXTheme.volt
         ]))
         self.versionLabel.attributedText = attributed
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
@@ -389,6 +391,9 @@ private extension SettingsViewController
         }
         
         // AppRefreshRow
+        // focusmaxxing hub: on means on, in the product's own colour
+        self.backgroundRefreshSwitch.onTintColor = FMXTheme.volt
+        self.backgroundRefreshSwitch.thumbTintColor = .white
         self.backgroundRefreshSwitch.isOn = UserDefaults.standard.isBackgroundRefreshEnabled
         self.noIdleTimeoutSwitch.isOn = UserDefaults.standard.isIdleTimeoutDisableEnabled
         self.disableAppLimitSwitch.isOn = UserDefaults.standard.isAppLimitDisabled
@@ -942,6 +947,13 @@ extension SettingsViewController
             cell.style = .bottom
         }
 
+        // focusmaxxing hub: every word on this screen comes out of the storyboard in Apple's own
+        // font. rather than hand-editing fifty font attributes in XML - which cannot be checked
+        // without a build - each row is walked once as it is handed over and its labels are put
+        // into Manrope at the size and weight they already had. reading a label is safe; the two
+        // rows whose titles we replace are found by position (fmxSetTitle), so nothing is moved.
+        self.fmxRestyle(in: cell.contentView)
+
         return cell
     }
     
@@ -956,6 +968,7 @@ extension SettingsViewController
         case .signIn, .account, .patreon, .display, .appRefresh, .techyThings, .credits, .advancedSettings, .betaTesting, .diagnostics /* ,.macDirtyCow */:
             let headerView = tableView.dequeueReusableHeaderFooterView(withIdentifier: "HeaderFooterView") as! SettingsHeaderFooterView
             self.prepare(headerView, for: section, isHeader: true)
+            headerView.fmxApplyTracking()
             return headerView
             
         case .instructions: return nil
@@ -1341,6 +1354,41 @@ private extension SettingsViewController
     {
         guard let label = cell.contentView.subviews.compactMap({ $0 as? UILabel }).first else { return }
         label.text = title
+    }
+
+    /// Puts one row's words into Manrope and its chevron into the muted grey the design system
+    /// gives an arrow, at whatever size and weight the storyboard already chose. It has to be
+    /// recursive: most rows keep their label as a direct child, but the Legal row's sits inside a
+    /// stack view. Nothing is moved or re-parented - fmxSetTitle finds two of these labels by
+    /// position, and if they moved a customer would silently be shown the wrong row title.
+    func fmxRestyle(in view: UIView)
+    {
+        for subview in view.subviews
+        {
+            switch subview
+            {
+            case let label as UILabel:
+                let descriptor = label.font.fontDescriptor
+                var weight = UIFont.Weight.regular
+                if let traits = descriptor.object(forKey: .traits) as? [UIFontDescriptor.TraitKey: Any],
+                   let value = (traits[.weight] as? NSNumber)?.doubleValue
+                {
+                    weight = UIFont.Weight(rawValue: CGFloat(value))
+                }
+                // a storyboard's "boldSystem" carries the bold bit rather than a weight number
+                if descriptor.symbolicTraits.contains(.traitBold), weight.rawValue < UIFont.Weight.semibold.rawValue
+                {
+                    weight = .bold
+                }
+                label.font = FMXFont.of(label.font.pointSize, weight)
+
+            case let imageView as UIImageView:
+                imageView.tintColor = FMXTheme.faint
+
+            default:
+                self.fmxRestyle(in: subview)
+            }
+        }
     }
 
     func fmxPresentReminderDays(from indexPath: IndexPath)

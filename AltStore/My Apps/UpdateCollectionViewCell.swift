@@ -51,7 +51,7 @@ extension UpdateCollectionViewCell
         
         self.bannerView.backgroundEffectView.isHidden = true
         
-        self.blurView.layer.cornerRadius = 20
+        self.blurView.layer.cornerRadius = FMXTheme.radius
         self.blurView.layer.masksToBounds = true
         
         self.update()
@@ -116,7 +116,9 @@ private extension UpdateCollectionViewCell
         case .expanded: self.versionDescriptionTextView.isCollapsed = false
         }
         
-        self.blurView.backgroundColor = self.originalTintColor ?? self.tintColor
+        // focusmaxxing hub: the card is the ink lifted a shade, like every other row in the
+        // product; the accent belongs to the button on it, not to the whole panel
+        self.blurView.backgroundColor = FMXTheme.card
         self.bannerView.button.progressTintColor = self.originalTintColor ?? self.tintColor
         
         self.setNeedsLayout()

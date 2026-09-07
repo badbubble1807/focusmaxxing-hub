@@ -2,7 +2,7 @@
 //  FMXControls.swift
 //  Focusmaxxing Hub
 //
-//  the pieces the phone screens are built out of, all wearing FMXTheme.
+//  the pieces the phone screens are built out of, all wearing FMXTheme and set in Manrope.
 //
 //  the one that matters is FMXSwitchView. it is the same control as the switch in the desktop app
 //  and the extension popup, drawn from the same numbers (theme.css, `.sw`): a 52 by 30 track with
@@ -13,7 +13,7 @@
 //  screens of this product.
 //
 //  why it is a control and not a picture: the row it sits in is tappable too, and the two must not
-//  both fire. a control swallows the touch that lands on it, so the pill sends one tap and the
+//  both fire. a control swallows the touch that lands on it, so the switch sends one tap and the
 //  rest of the row sends the other.
 //
 
@@ -60,7 +60,7 @@ final class FMXSwitchView: UIControl {
         // the seconds sit in the half the knob is not in
         self.numberLabel.frame = CGRect(x: 0, y: 0, width: 28, height: FMXSwitchView.height)
         self.numberLabel.textAlignment = .center
-        self.numberLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .heavy)
+        self.numberLabel.font = FMXFont.counting(12, .heavy)
         self.numberLabel.textColor = FMXTheme.waitInk
         self.numberLabel.isUserInteractionEnabled = false
         self.addSubview(self.numberLabel)
@@ -187,7 +187,9 @@ class FMXCell: UITableViewCell {
     }
 }
 
-/// one switch: what it blocks on the left, the switch on the right.
+/// one switch: what it blocks on the left, the switch on the right. the second line is optional
+/// and collapses when there is nothing to say, which is nearly always - the extension's rows are
+/// one line each and the phone matches them.
 final class FMXSwitchCell: FMXCell {
     let titleLabel = UILabel()
     let subLabel = UILabel()
@@ -195,26 +197,35 @@ final class FMXSwitchCell: FMXCell {
     let pill = FMXSwitchView()
     var onTap: (() -> Void)?
 
+    private let words = UIStackView()
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         self.selectionStyle = .none
 
-        self.titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+        self.titleLabel.font = FMXFont.of(16, .semibold)
         self.titleLabel.textColor = FMXTheme.text
+        self.titleLabel.numberOfLines = 0
 
-        self.subLabel.font = .systemFont(ofSize: 12.5, weight: .regular)
+        self.subLabel.font = FMXFont.of(12.5, .regular)
         self.subLabel.textColor = FMXTheme.muted
         self.subLabel.numberOfLines = 2
+        self.subLabel.isHidden = true
 
-        self.statusLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        self.statusLabel.font = FMXFont.of(12, .bold)
         self.statusLabel.textColor = FMXTheme.ember
         self.statusLabel.textAlignment = .right
         self.statusLabel.setContentHuggingPriority(.required, for: .horizontal)
         self.statusLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
+        self.words.axis = .vertical
+        self.words.spacing = 3
+        self.words.addArrangedSubview(self.titleLabel)
+        self.words.addArrangedSubview(self.subLabel)
+
         self.pill.addTarget(self, action: #selector(pillTapped), for: .touchUpInside)
 
-        for view in [self.titleLabel, self.subLabel, self.statusLabel, self.pill] {
+        for view in [self.words, self.statusLabel, self.pill] {
             view.translatesAutoresizingMaskIntoConstraints = false
             self.contentView.addSubview(view)
         }
@@ -230,14 +241,10 @@ final class FMXSwitchCell: FMXCell {
             self.statusLabel.centerYAnchor.constraint(equalTo: self.contentView.centerYAnchor),
             self.statusLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 110),
 
-            self.titleLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
-            self.titleLabel.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 13),
-            self.titleLabel.trailingAnchor.constraint(equalTo: self.statusLabel.leadingAnchor, constant: -8),
-
-            self.subLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
-            self.subLabel.topAnchor.constraint(equalTo: self.titleLabel.bottomAnchor, constant: 3),
-            self.subLabel.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -13),
-            self.subLabel.trailingAnchor.constraint(equalTo: self.statusLabel.leadingAnchor, constant: -8),
+            self.words.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.words.trailingAnchor.constraint(equalTo: self.statusLabel.leadingAnchor, constant: -8),
+            self.words.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 15),
+            self.words.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -15),
         ])
     }
 
@@ -245,9 +252,15 @@ final class FMXSwitchCell: FMXCell {
 
     @objc private func pillTapped() { self.onTap?() }
 
+    /// the second line, or nothing at all
+    func setSub(_ text: String?) {
+        self.subLabel.text = text
+        self.subLabel.isHidden = (text == nil || text?.isEmpty == true)
+    }
+
     func showNotSetUp() {
         self.pill.showNotSetUp()
-        self.statusLabel.text = ""
+        self.statusLabel.text = "Not set up"
     }
 
     func show(_ phase: FMXPhase) {
@@ -271,7 +284,7 @@ final class FMXChipView: UIView {
         self.layer.cornerRadius = 9
         self.layer.masksToBounds = true
 
-        self.label.font = .systemFont(ofSize: 10.5, weight: .heavy)
+        self.label.font = FMXFont.of(10.5, .heavy)
         self.label.translatesAutoresizingMaskIntoConstraints = false
         self.addSubview(self.label)
 
@@ -307,7 +320,7 @@ final class FMXSectionHeader: UIView {
     init(title: String) {
         super.init(frame: .zero)
 
-        self.titleLabel.font = .systemFont(ofSize: 19, weight: .bold)
+        self.titleLabel.font = FMXFont.of(19, .heavy)
         self.titleLabel.textColor = FMXTheme.text
         self.titleLabel.text = title
 
@@ -355,7 +368,7 @@ final class FMXPrimaryButton: UIButton {
 
         self.setTitle(title, for: .normal)
         self.setTitleColor(FMXTheme.onInk, for: .normal)
-        self.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
+        self.titleLabel?.font = FMXFont.of(18, .heavy)
 
         self.layer.shadowColor = FMXTheme.volt.cgColor
         self.layer.shadowOffset = CGSize(width: 0, height: 10)

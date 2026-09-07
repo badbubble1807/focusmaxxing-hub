@@ -82,6 +82,9 @@ class BrowseViewController: UICollectionViewController
         super.viewDidLoad()
         
         self.collectionView.backgroundColor = .altBackground
+        // focusmaxxing hub: the same ground, with the accent glowing behind the top of it, that
+        // the switches screen stands on
+        self.collectionView.backgroundView = FMXTheme.backdrop()
         self.collectionView.alwaysBounceVertical = true
         
         self.dataSource.searchController.searchableKeyPaths = [#keyPath(StoreApp.name),
@@ -136,7 +139,8 @@ class BrowseViewController: UICollectionViewController
         self.titleCategoryIconView.contentMode = .scaleAspectFit
         
         self.titleLabel = UILabel()
-        self.titleLabel.font = UIFont.preferredFont(forTextStyle: .headline)
+        self.titleLabel.font = FMXFont.of(17, .bold)
+        self.titleLabel.textColor = FMXTheme.text
         
         self.titleStackView = UIStackView(arrangedSubviews: [self.titleSourceIconView, self.titleCategoryIconView, self.titleLabel])
         self.titleStackView.spacing = 4
@@ -268,6 +272,14 @@ private extension BrowseViewController
         let context = self.source?.managedObjectContext ?? DatabaseManager.shared.viewContext
         let dataSource = RSTFetchedResultsCollectionViewPrefetchingDataSource<StoreApp, UIImage>(fetchRequest: fetchRequest, managedObjectContext: context)
         dataSource.placeholderView = self.placeholderView
+
+        // focusmaxxing hub: the first thing anybody sees on a cold launch, while the list is still
+        // being fetched. it was grey system type over a black screen with a grey spinner.
+        self.placeholderView.textLabel.font = FMXFont.of(22, .heavy)
+        self.placeholderView.textLabel.textColor = FMXTheme.text
+        self.placeholderView.detailTextLabel.font = FMXFont.of(15, .regular)
+        self.placeholderView.detailTextLabel.textColor = FMXTheme.muted
+        self.placeholderView.activityIndicatorView.color = FMXTheme.teal
         dataSource.cellConfigurationHandler = { [weak self] (cell, app, indexPath) in
             guard let self else { return }
             
@@ -292,7 +304,9 @@ private extension BrowseViewController
             cell.bannerView.button.activityIndicatorView.style = .medium
             cell.bannerView.button.activityIndicatorView.color = .white
             
-            let tintColor = app.tintColor ?? .altPrimary
+            // focusmaxxing hub: one accent on every tile. an app's own brand colour (Instagram pink,
+            // YouTube red) made this tab read as three unrelated shops.
+            let tintColor = FMXTheme.volt
             cell.tintColor = tintColor
         }
         dataSource.prefetchHandler = { (storeApp, indexPath, completionHandler) in
@@ -370,7 +384,7 @@ private extension BrowseViewController
     {
         if self.searchPredicate != nil
         {
-            self.placeholderView.textLabel.text = NSLocalizedString("No Apps", comment: "")
+            self.placeholderView.textLabel.text = NSLocalizedString("No apps", comment: "")
             self.placeholderView.textLabel.isHidden = false
             
             self.placeholderView.detailTextLabel.text = NSLocalizedString("Please make sure your spelling is correct, or try searching for another app.", comment: "")
@@ -386,7 +400,7 @@ private extension BrowseViewController
                 self.placeholderView.textLabel.isHidden = true
                 self.placeholderView.detailTextLabel.isHidden = false
                 
-                self.placeholderView.detailTextLabel.text = NSLocalizedString("Loading...", comment: "")
+                self.placeholderView.detailTextLabel.text = NSLocalizedString("Loading…", comment: "")
                 
                 self.placeholderView.activityIndicatorView.startAnimating()
                 
@@ -394,13 +408,13 @@ private extension BrowseViewController
                 self.placeholderView.textLabel.isHidden = false
                 self.placeholderView.detailTextLabel.isHidden = false
                 
-                self.placeholderView.textLabel.text = NSLocalizedString("Unable to Fetch Apps", comment: "")
+                self.placeholderView.textLabel.text = NSLocalizedString("Unable to fetch apps", comment: "")
                 self.placeholderView.detailTextLabel.text = error.localizedDescription
                 
                 self.placeholderView.activityIndicatorView.stopAnimating()
                 
             case .success:
-                self.placeholderView.textLabel.text = NSLocalizedString("No Apps", comment: "")
+                self.placeholderView.textLabel.text = NSLocalizedString("No apps", comment: "")
                 self.placeholderView.textLabel.isHidden = false
                 self.placeholderView.detailTextLabel.isHidden = true
                 
@@ -418,8 +432,10 @@ private extension BrowseViewController
             self.title = self.isFocusmaxxingList ? "Apps" : source.name
 
             self.titleSourceIconView.backgroundColor = tintColor
-            self.titleSourceIconView.isHidden = false
-            
+            // focusmaxxing hub: our own list is the tab itself, not a shop with a badge - the
+            // heading is the word "Apps", set like every other heading in the product
+            self.titleSourceIconView.isHidden = self.isFocusmaxxingList
+
             self.titleCategoryIconView.isHidden = true
             
             if let iconURL = source.effectiveIconURL
@@ -459,22 +475,16 @@ private extension BrowseViewController
         self.titleStackView.sizeToFit()
         self.navigationItem.titleView = self.titleStackView
         
-        self.view.tintColor = tintColor
-        
+        // focusmaxxing hub: one accent, whatever the app's own colour is. this runs on every
+        // update, so the bar has to be set here rather than once in viewDidLoad or it is put back.
+        self.view.tintColor = FMXTheme.teal
+
         #if !os(tvOS)
-        let appearance = NavigationBarAppearance()
-        appearance.configureWithTintColor(tintColor)
-        appearance.configureWithDefaultBackground()
-        
-        let edgeAppearance = appearance.copy()
-        edgeAppearance.configureWithTransparentBackground()
-        
-        self.navigationItem.standardAppearance = appearance
-        self.navigationItem.scrollEdgeAppearance = edgeAppearance
+        FMXTheme.style(navigationItem: self.navigationItem)
         #endif
-        
+
         // Necessary to tint UISearchController's inline bar button.
-        self.navigationController?.navigationBar.tintColor = tintColor
+        self.navigationController?.navigationBar.tintColor = FMXTheme.teal
         
         if let sortButton
         {

@@ -31,5 +31,31 @@ final class SettingsHeaderFooterView: UITableViewHeaderFooterView
                                      self.stackView.trailingAnchor.constraint(equalTo: self.contentView.layoutMarginsGuide.trailingAnchor),
                                      self.stackView.topAnchor.constraint(equalTo: self.contentView.layoutMarginsGuide.topAnchor),
                                      self.stackView.bottomAnchor.constraint(equalTo: self.contentView.layoutMarginsGuide.bottomAnchor)])
+
+        // focusmaxxing hub: a heading over a group, set the way the desktop panel sets
+        // COMMONLY BLOCKED - small, heavy, wide-tracked, muted. the words arrive already in
+        // capitals from SettingsViewController.prepare(_:for:isHeader:), so only the spacing
+        // between the letters has to be added, and it has to be added as an attribute because a
+        // label has nowhere else to keep it.
+        self.primaryLabel.font = FMXFont.of(11.5, .heavy)
+        self.primaryLabel.textColor = FMXTheme.muted
+
+        self.secondaryLabel.font = FMXFont.of(12.5, .regular)
+        self.secondaryLabel.textColor = FMXTheme.faint
+
+        self.button.titleLabel?.font = FMXFont.of(13, .bold)
+        self.button.setTitleColor(FMXTheme.accentText, for: .normal)
+    }
+
+    /// the letter spacing the design system asks of a section title. it has to be reapplied every
+    /// time the words change, so the view that sets the words calls this.
+    func fmxApplyTracking()
+    {
+        guard let text = self.primaryLabel.text, !text.isEmpty else { return }
+        self.primaryLabel.attributedText = NSAttributedString(string: text, attributes: [
+            .font: FMXFont.of(11.5, .heavy),
+            .foregroundColor: FMXTheme.muted,
+            .kern: 1.0,
+        ])
     }
 }

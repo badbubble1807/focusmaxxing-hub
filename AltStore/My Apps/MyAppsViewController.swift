@@ -91,6 +91,10 @@ class MyAppsViewController: UICollectionViewController
         // focusmaxxing hub: no "+" button. the free tier is the two apps on the Apps tab, nothing picked from Files.
         self.navigationItem.leftBarButtonItem = nil
 
+        // focusmaxxing hub: the same ground and the same bar as every other tab
+        FMXTheme.style(navigationItem: self.navigationItem)
+        self.collectionView.backgroundView = FMXTheme.backdrop()
+
         // Allows us to intercept delegate callbacks.
         self.updatesDataSource.fetchedResultsController.delegate = self
         self.activeAppsDataSource.fetchedResultsController.delegate = self
@@ -213,7 +217,8 @@ class MyAppsViewController: UICollectionViewController
                 return
             }
             
-            let targetColor: UIColor = isReady ? .systemGreen : .systemRed
+            // focusmaxxing hub: the product's own on and off, not the system's traffic lights
+            let targetColor: UIColor = isReady ? FMXTheme.volt : FMXTheme.danger
             
             let updateColorClosure: () -> Void = { [weak self] in
                 guard let self = self, let existingDot = self.statusDotView else { return }
@@ -239,7 +244,9 @@ class MyAppsViewController: UICollectionViewController
             self.statusDotView?.removeFromSuperview()
             
             let titleText = NSLocalizedString("My apps", comment: "")
-            let font = UIFont.systemFont(ofSize: 34, weight: .bold)
+            // this measures the title to put the dot after it, so it has to be the font the bar
+            // really uses - FMXTheme sets a large title to Manrope at 28 (FMXTheme.style)
+            let font = FMXFont.of(28, .heavy)
             let textWidth = titleText.size(withAttributes: [.font: font]).width
             let leftMargin: CGFloat = 20
             
@@ -326,20 +333,21 @@ private extension MyAppsViewController
             cell.layoutMargins.left = self.view.layoutMargins.left
             cell.layoutMargins.right = self.view.layoutMargins.right
             
-            cell.blurView.layer.cornerRadius = 20
+            cell.blurView.layer.cornerRadius = FMXTheme.radius
             cell.blurView.layer.masksToBounds = true
-            cell.blurView.backgroundColor = .altPrimary
+            cell.blurView.backgroundColor = FMXTheme.card
+            cell.textLabel.textColor = FMXTheme.accentText
             
             cell.button.addTarget(self, action: #selector(MyAppsViewController.showHiddenUpdatesAlert(_:)), for: .primaryActionTriggered)
             
             if !self.unsupportedUpdates.isEmpty
             {
-                cell.textLabel.text = NSLocalizedString("Unsupported Updates Available", comment: "")
+                cell.textLabel.text = NSLocalizedString("Unsupported updates available", comment: "")
                 cell.button.isHidden = false
             }
             else
             {
-                cell.textLabel.text = NSLocalizedString("No Updates Available", comment: "")
+                cell.textLabel.text = NSLocalizedString("No updates available", comment: "")
                 cell.button.isHidden = true
             }
         }
@@ -365,7 +373,7 @@ private extension MyAppsViewController
             cell.layoutMargins.left = self.view.layoutMargins.left
             cell.layoutMargins.right = self.view.layoutMargins.right
             
-            cell.tintColor = app.tintColor ?? .altPrimary
+            cell.tintColor = FMXTheme.volt
             cell.versionDescriptionTextView.maximumNumberOfLines = 3
             cell.versionDescriptionTextView.text = latestSupportedVersion.localizedDescription ?? "nil"
             
@@ -462,7 +470,7 @@ private extension MyAppsViewController
         let dataSource = RSTFetchedResultsCollectionViewPrefetchingDataSource<InstalledApp, UIImage>(fetchRequest: fetchRequest, managedObjectContext: DatabaseManager.shared.viewContext)
         dataSource.cellIdentifierHandler = { _ in "AppCell" }
         dataSource.cellConfigurationHandler = { (cell, installedApp, indexPath) in
-            let tintColor = installedApp.storeApp?.tintColor ?? .altPrimary
+            let tintColor = FMXTheme.volt
             
             let cell = cell as! InstalledAppCollectionViewCell
             cell.layoutMargins.left = self.view.layoutMargins.left
@@ -565,12 +573,13 @@ private extension MyAppsViewController
         let dataSource = RSTFetchedResultsCollectionViewPrefetchingDataSource<InstalledApp, UIImage>(fetchRequest: fetchRequest, managedObjectContext: DatabaseManager.shared.viewContext)
         dataSource.cellIdentifierHandler = { _ in "AppCell" }
         dataSource.cellConfigurationHandler = { (cell, installedApp, indexPath) in
-            let tintColor = installedApp.storeApp?.tintColor ?? .altPrimary
+            let tintColor = FMXTheme.volt
             
             let cell = cell as! InstalledAppCollectionViewCell
             cell.layoutMargins.left = self.view.layoutMargins.left
             cell.layoutMargins.right = self.view.layoutMargins.right
-            cell.tintColor = UIColor.gray
+            // a deactivated app makes no claim, so it wears the colour that means exactly that
+            cell.tintColor = FMXTheme.slate
             
             if cell.bundleIdentifier != installedApp.bundleIdentifier
             {
@@ -1086,7 +1095,7 @@ private extension MyAppsViewController
         
         let sortedHiddenUpdates = self.unsupportedUpdates.sorted(by: { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
         
-        let title = sortedHiddenUpdates.count == 1 ? NSLocalizedString("Unsupported Update Available", comment: "") : String(format: NSLocalizedString("%@ Unsupported Updates Available", comment: ""), sortedHiddenUpdates.count as NSNumber)
+        let title = sortedHiddenUpdates.count == 1 ? NSLocalizedString("Unsupported update available", comment: "") : String(format: NSLocalizedString("%@ unsupported updates available", comment: ""), sortedHiddenUpdates.count as NSNumber)
         var message = String(format: NSLocalizedString("These updates don't support iOS %@. Please update your device to the latest iOS version to install them.", comment: ""), ProcessInfo.processInfo.operatingSystemVersion.stringValue)
         message += "\n"
         
@@ -1788,10 +1797,10 @@ extension MyAppsViewController
             let headerView = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "UpdatesHeader", for: indexPath) as! UpdatesCollectionHeaderView
             
             UIView.performWithoutAnimation {
-                headerView.button.backgroundColor = UIColor.altPrimary.withAlphaComponent(0.15)
+                headerView.button.backgroundColor = FMXTheme.teal.withAlphaComponent(0.15)
                 headerView.button.setTitle("▾", for: .normal)
-                headerView.button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 28)
-                headerView.button.setTitleColor(.altPrimary, for: .normal)
+                headerView.button.titleLabel?.font = FMXFont.of(28, .bold)
+                headerView.button.setTitleColor(FMXTheme.teal, for: .normal)
                 headerView.button.addTarget(self, action: #selector(MyAppsViewController.toggleAppUpdates), for: .primaryActionTriggered)
                 
                 if self.isUpdateSectionCollapsed
@@ -1827,8 +1836,8 @@ extension MyAppsViewController
                 }
                 
                 headerView.button.isIndicatingActivity = false
-                headerView.button.activityIndicatorView.color = .altPrimary
-                headerView.button.setTitle(NSLocalizedString("Refresh All", comment: ""), for: .normal)
+                headerView.button.activityIndicatorView.color = FMXTheme.teal
+                headerView.button.setTitle(NSLocalizedString("Refresh all", comment: ""), for: .normal)
                 headerView.button.addTarget(self, action: #selector(MyAppsViewController.refreshAllApps(_:)), for: .primaryActionTriggered)
                 
                 headerView.button.layoutIfNeeded()

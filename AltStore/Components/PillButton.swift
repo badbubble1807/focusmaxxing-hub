@@ -101,7 +101,7 @@ class PillButton: UIButton
             {
                 // Reset insets for custom style.
                 let size = self.fontSize ?? self.storyboardFontSize ?? 14
-                let font = UIFont.boldSystemFont(ofSize: size)
+                let font = FMXFont.of(size, .bold)
                 var config = self.configuration ?? UIButton.Configuration.plain()
                 config.titleLineBreakMode = .byClipping
                 config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
@@ -109,7 +109,7 @@ class PillButton: UIButton
                     var outgoing = incoming
                     outgoing.font = font
                     if let self = self {
-                        outgoing.foregroundColor = (self.progress == nil && !self.isIndicatingActivity) ? UIColor.white : UIColor.clear
+                        outgoing.foregroundColor = (self.progress == nil && !self.isIndicatingActivity) ? self.fmxInk : UIColor.clear
                     }
                     return outgoing
                 }
@@ -118,6 +118,21 @@ class PillButton: UIButton
             
             self.update()
         }
+    }
+
+    /// focusmaxxing hub: the colour the words on a filled pill are written in.
+    ///
+    /// this button used to write white on whatever it was filled with. every fill in the product
+    /// is now a bright one - volt when there is time left, ember as it runs out, danger when it
+    /// has gone - and white on a bright colour cannot be read; the design system's rule is that an
+    /// accent surface carries dark ink (--on-ink in theme.css). the one fill that is still dark is
+    /// the grey on a deactivated app, and that one does want white. so it is decided from the fill
+    /// rather than fixed, and it stays right if a colour ever moves.
+    var fmxInk: UIColor {
+        let tint: UIColor = self.tintColor
+        var brightness: CGFloat = 0
+        guard tint.getHue(nil, saturation: nil, brightness: &brightness, alpha: nil) else { return .white }
+        return brightness >= 0.6 ? FMXTheme.onInk : .white
     }
 
     override var intrinsicContentSize: CGSize {
@@ -325,7 +340,7 @@ private extension PillButton
     {
         if self.progress == nil && !self.isIndicatingActivity
         {
-            self.setTitleColor(.white, for: .normal)
+            self.setTitleColor(self.fmxInk, for: .normal)
             self.backgroundColor = self.tintColor
             self.progressView.progressTintColor = self.progressTintColor ?? self.tintColor
             self.layer.borderColor = self.borderColor?.cgColor
@@ -343,7 +358,7 @@ private extension PillButton
         
         // Update font after init because the original titleLabel is replaced.
         let size = self.fontSize ?? self.storyboardFontSize ?? 14
-        let font = UIFont.boldSystemFont(ofSize: size)
+        let font = FMXFont.of(size, .bold)
         self.titleLabel?.font = font
         self.titleLabel?.adjustsFontSizeToFitWidth = false
         self.titleLabel?.numberOfLines = 1
@@ -366,7 +381,7 @@ private extension PillButton
                 var outgoing = incoming
                 outgoing.font = font
                 if let self = self {
-                    outgoing.foregroundColor = (self.progress == nil && !self.isIndicatingActivity) ? UIColor.white : UIColor.clear
+                    outgoing.foregroundColor = (self.progress == nil && !self.isIndicatingActivity) ? self.fmxInk : UIColor.clear
                 }
                 return outgoing
             }
