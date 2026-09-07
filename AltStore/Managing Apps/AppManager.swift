@@ -128,7 +128,11 @@ final class AppManager: ObservableObject, @unchecked Sendable
                         try dbBackgroundContext.save()
                     }
                 }
-            
+
+                // focusmaxxing hub: book the "stops opening soon" reminder from the apps' current dates
+                // (before the hub's own warning below, which can throw when notifications are not allowed)
+                FMXReminder.reschedule(in: dbBackgroundContext)
+
                 if let objectID = altstoreAppObjectID {
                     let context = StandaloneOperationContext(steps: .scheduleExpirationWarningNotification, dbBackgroundContext: dbBackgroundContext)
                     let app = await dbBackgroundContext.perform {

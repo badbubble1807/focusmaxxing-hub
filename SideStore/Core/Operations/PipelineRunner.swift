@@ -265,6 +265,11 @@ final class PipelineRunner: Sendable
                 )
                 try await scheduleNotifOp.execute()
             }
+
+            // focusmaxxing hub: the app's dates moved; book the "stops opening soon" reminder again
+            if let dbContext = group.context.dbBackgroundContext {
+                FMXReminder.reschedule(in: dbContext)
+            }
             await CellularRefreshManager.shared.turnOnDataIfNeeded()
         } catch {
             await CellularRefreshManager.shared.turnOnDataIfNeeded()

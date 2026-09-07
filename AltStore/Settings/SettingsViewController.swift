@@ -46,14 +46,9 @@ extension SettingsViewController
         case disableAppLimit
         
         static var allCases: [AppRefreshRow] {
-            var c: [AppRefreshRow] = [.backgroundRefresh, .noIdleTimeout, .addToSiri]
-
-            // conditional entries go at the last to preserve ordering
-            if UserDefaults.standard.isCowExploitSupported || !ProcessInfo().sparseRestorePatched
-            {
-                c.append(.disableAppLimit)
-            }
-            return c
+            // focusmaxxing hub: one row. the idle-timeout, siri and app-limit rows are settings a customer
+            // never needs; their storyboard cells stay, unseen (this enum's order is the storyboard order).
+            return [.backgroundRefresh]
         }
     }
     
@@ -438,13 +433,14 @@ private extension SettingsViewController
             }
             
         case .patreon:
+            // focusmaxxing hub: this section holds the "Upgrade to Pro" row
             if isHeader
             {
-                settingsHeaderFooterView.primaryLabel.text = NSLocalizedString("SUPPORT US", comment: "")
+                settingsHeaderFooterView.primaryLabel.text = NSLocalizedString("FOCUSMAXXING PRO", comment: "")
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Support the Focusmaxxing Hub Team by following our socials or becoming a patron!", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Pro removes the helper, the computer step and the seven-day renewals.", comment: "")
             }
 
         case .account:
@@ -461,17 +457,18 @@ private extension SettingsViewController
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Enable Background Refresh to automatically refresh apps in the background when connected to Wi-Fi. \n\nEnable Disable Idle Timeout to allow Focusmaxxing Hub to keep your device awake during a refresh or install of any apps.", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Background refresh lets Focusmaxxing Hub renew your apps by itself while the helper is on. Open the Hub now and then to give it the chance.", comment: "")
             }
             
         case .display:
+            // focusmaxxing hub: this section holds the reminder row
             if isHeader
             {
-                settingsHeaderFooterView.primaryLabel.text = NSLocalizedString("DISPLAY", comment: "")
+                settingsHeaderFooterView.primaryLabel.text = NSLocalizedString("REMINDER", comment: "")
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Personalize your Focusmaxxing Hub experience by choosing an alternate app icon.", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = self.fmxReminderFooter
             }
             
             
@@ -485,7 +482,7 @@ private extension SettingsViewController
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Free up disk space by removing non-essential data, such as temporary files and backups for uninstalled apps.", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Health check shows whether the helper is connected. The error log is what to send when something fails.", comment: "")
             }
             
         case .credits:
@@ -549,8 +546,9 @@ private extension SettingsViewController
         //     let isHidden = !(UserDefaults.standard.isCowExploitSupported && UserDefaults.standard.isDebugModeEnabled)
         //     return isHidden
 
-        // focusmaxxing hub: SideStore's patreon, alternate icons, "how it works" tutorial and beta channel are not ours
-        case .patreon, .display, .instructions, .betaTesting: return true
+        // focusmaxxing hub: SideStore's "how it works" tutorial and beta channel are not ours. the patreon and
+        // display sections are reused for our own rows, Upgrade to Pro and the reminder (see the bottom of this file).
+        case .instructions, .betaTesting: return true
 
         default: return false
         }
@@ -850,10 +848,10 @@ private extension SettingsViewController
     {
         guard self.presentedViewController == nil else { return }
                 
-        UIView.performWithoutAnimation {
-            self.navigationController?.popViewController(animated: false)
-            self.performSegue(withIdentifier: "showPatreon", sender: nil)
-        }
+        // focusmaxxing hub: the patreon screen and its segue are gone; nothing posts this notification
+        // today, but if something did, the nearest thing is the upgrade page
+        self.navigationController?.popViewController(animated: false)
+        self.openWebURL(FMXLinks.upgradeURL, preferredTintColor: .altPrimary)
     }
 
     @objc func openErrorLog(_: Notification) {
@@ -882,7 +880,7 @@ extension SettingsViewController
     
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat
     {
-        return super.tableView(tableView, heightForRowAt: indexPath)
+        return super.tableView(tableView, heightForRowAt: self.fmxStoryboardIndexPath(for: indexPath))
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int
@@ -894,7 +892,8 @@ extension SettingsViewController
         case .signIn: return (self.activeTeam == nil) ? 1 : 0
         case .account: return (self.activeTeam == nil) ? 0 : 3
         case .appRefresh: return AppRefreshRow.allCases.count
-        case .advancedSettings: return AdvancedSettingsRow.allCases.count
+        case .techyThings: return SettingsViewController.fmxVisibleTechyRows.count            // focusmaxxing hub: trimmed
+        case .advancedSettings: return SettingsViewController.fmxVisibleAdvancedRows.count    // focusmaxxing hub: trimmed
         case .credits: return 1    // focusmaxxing hub: only the "Open source & licensing" row (the first cell in the storyboard)
         default: return super.tableView(tableView, numberOfRowsInSection: section.rawValue)
         }
@@ -902,7 +901,7 @@ extension SettingsViewController
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell
     {
-        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: self.fmxStoryboardIndexPath(for: indexPath))
 
         // focusmaxxing hub: the single legal row is drawn as a rounded card on its own
         if let cell = cell as? InsetGroupTableViewCell, indexPath.section == Section.credits.rawValue
@@ -910,24 +909,39 @@ extension SettingsViewController
             cell.style = .single
         }
 
-        if AppRefreshRow.AllCases().count == 1
+        // focusmaxxing hub: our two rows in SideStore's reused sections
+        if indexPath.section == Section.patreon.rawValue
         {
-            if let cell = cell as? InsetGroupTableViewCell,
-               indexPath.section == Section.appRefresh.rawValue,
-               indexPath.row == AppRefreshRow.backgroundRefresh.rawValue
+            self.fmxSetTitle("Upgrade to Pro", in: cell)
+        }
+        if indexPath.section == Section.display.rawValue
+        {
+            self.fmxSetTitle(self.fmxReminderRowTitle, in: cell)
+        }
+
+        // focusmaxxing hub: the trimmed sections; a lone row is a card on its own, otherwise the last row closes the card
+        if let cell = cell as? InsetGroupTableViewCell, indexPath.section == Section.appRefresh.rawValue
+        {
+            if AppRefreshRow.allCases.count == 1
             {
                 cell.style = .single
             }
+            else if indexPath.row == AppRefreshRow.allCases.count - 1
+            {
+                cell.style = .bottom
+            }
         }
-        
-        if let cell = cell as? InsetGroupTableViewCell,
-               indexPath.section == Section.appRefresh.rawValue,
-               indexPath.row == AppRefreshRow.allCases.count-1      // last row
+        if let cell = cell as? InsetGroupTableViewCell, indexPath.section == Section.techyThings.rawValue,
+           indexPath.row == SettingsViewController.fmxVisibleTechyRows.count - 1
         {
-            cell.setValue(3, forKey: "style")
+            cell.style = .bottom
         }
-        
-        
+        if let cell = cell as? InsetGroupTableViewCell, indexPath.section == Section.advancedSettings.rawValue,
+           indexPath.row == SettingsViewController.fmxVisibleAdvancedRows.count - 1
+        {
+            cell.style = .bottom
+        }
+
         return cell
     }
     
@@ -1083,7 +1097,7 @@ extension SettingsViewController
             }
             
         case .advancedSettings:
-            let row = AdvancedSettingsRow.allCases[indexPath.row]
+            let row = SettingsViewController.fmxVisibleAdvancedRows[indexPath.row]    // focusmaxxing hub: trimmed section
             switch row
             {
             case .sendFeedback:
@@ -1220,8 +1234,16 @@ extension SettingsViewController
             }
             
             
+        case .patreon:
+            // focusmaxxing hub: the "Upgrade to Pro" row opens the website's checkout (a placeholder until the domain exists)
+            self.openWebURL(FMXLinks.upgradeURL, preferredTintColor: .altPrimary)
+
+        case .display:
+            // focusmaxxing hub: the reminder row asks how many days before an app stops opening
+            self.fmxPresentReminderDays(from: indexPath)
+
         // case .account, .patreon, .display, .instructions, .macDirtyCow: break
-        case .account, .patreon, .display, .instructions, .betaTesting: break
+        case .account, .instructions, .betaTesting: break
         }
         
         
@@ -1278,8 +1300,64 @@ extension SettingsViewController: INUIAddVoiceShortcutViewControllerDelegate
         {
             self.tableView.deselectRow(at: indexPath, animated: true)
         }
-        
+
         controller.dismiss(animated: true, completion: nil)
     }
 }
 #endif
+
+// focusmaxxing hub: what is ours in this screen. two of SideStore's sections are reused for our own rows
+// (their storyboard cells kept, their segues removed from Settings.storyboard): "SUPPORT US" is now
+// "FOCUSMAXXING PRO" with the Upgrade to Pro row, and "DISPLAY" is now "REMINDER". the techy and advanced
+// sections show only the rows a customer may ever need; the other cells stay in the storyboard, unseen.
+private extension SettingsViewController
+{
+    private static let fmxVisibleTechyRows: [TechyThingsRow] = [.healthCheck, .errorLog]
+    private static let fmxVisibleAdvancedRows: [AdvancedSettingsRow] = [.sendFeedback, .refreshAttempts, .resetPairingFile]
+
+    var fmxReminderRowTitle: String
+    {
+        let days = UserDefaults.standard.fmxReminderDays
+        return days == 1 ? "Reminder: 1 day before" : "Reminder: \(days) days before"
+    }
+
+    var fmxReminderFooter: String
+    {
+        let days = UserDefaults.standard.fmxReminderDays
+        let when = days == 1 ? "a day" : "\(days) days"
+        return "A notification \(when) before an app stops opening, if Focusmaxxing Hub could not renew it by itself. Tap to change how early."
+    }
+
+    // the storyboard row behind a table row; only the advanced section skips rows in the middle
+    func fmxStoryboardIndexPath(for indexPath: IndexPath) -> IndexPath
+    {
+        guard Section.allCases[indexPath.section] == .advancedSettings,
+              indexPath.row < SettingsViewController.fmxVisibleAdvancedRows.count else { return indexPath }
+        return IndexPath(row: SettingsViewController.fmxVisibleAdvancedRows[indexPath.row].rawValue, section: indexPath.section)
+    }
+
+    // the reused storyboard cells carry one label and a chevron; the label is the title
+    func fmxSetTitle(_ title: String, in cell: UITableViewCell)
+    {
+        guard let label = cell.contentView.subviews.compactMap({ $0 as? UILabel }).first else { return }
+        label.text = title
+    }
+
+    func fmxPresentReminderDays(from indexPath: IndexPath)
+    {
+        let sheet = UIAlertController(title: NSLocalizedString("Remind me before an app stops opening", comment: ""), message: nil, preferredStyle: .actionSheet)
+        for days in 1...FMXReminder.maxDays
+        {
+            let title = days == 1 ? "1 day before" : "\(days) days before"
+            sheet.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                UserDefaults.standard.fmxReminderDays = days
+                FMXReminder.reschedule(in: DatabaseManager.shared.viewContext)
+                self?.tableView.reloadSections(IndexSet(integer: indexPath.section), with: .none)
+            })
+        }
+        sheet.addAction(.cancel)
+        sheet.popoverPresentationController?.sourceView = self.tableView
+        sheet.popoverPresentationController?.sourceRect = self.tableView.rectForRow(at: indexPath)
+        self.present(sheet, animated: true)
+    }
+}
