@@ -66,18 +66,23 @@ jobs:
       - name: frontend packages
         run: npm ci
 
+      # powershell, not bash: under bash the runner puts git's own "link.exe" (a file tool) ahead of
+      # the visual studio linker on the path, and nothing compiles
       - name: build
+        shell: pwsh
         run: |
-          echo "version $VERSION"
-          printf '{"version":"%s"}' "$VERSION" > version.json
+          Write-Host "version $env:VERSION"
+          Set-Content -Path version.json -Value ('{"version":"' + $env:VERSION + '"}') -Encoding ascii -NoNewline
           # the restored cache carries the previous run's installer; the copy below wants exactly one
-          rm -rf src-tauri/target/release/bundle
+          if (Test-Path src-tauri/target/release/bundle) { Remove-Item -Recurse -Force src-tauri/target/release/bundle }
           npm run tauri -- build --config version.json
-          echo "==== bundles ===="
-          ls -la src-tauri/target/release/bundle/nsis
-          cp src-tauri/target/release/bundle/nsis/*-setup.exe ../focusmaxxing-setup-installer.exe
-          cp src-tauri/target/release/focusmaxxing-setup.exe ../focusmaxxing-setup.exe
-          ls -la ../focusmaxxing-setup*.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "==== bundles ===="
+          Get-ChildItem src-tauri/target/release/bundle/nsis
+          $installer = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          Copy-Item $installer.FullName ../focusmaxxing-setup-installer.exe
+          Copy-Item src-tauri/target/release/focusmaxxing-setup.exe ../focusmaxxing-setup.exe
+          Get-ChildItem ../focusmaxxing-setup*.exe
 
       - name: keep a copy
         uses: actions/upload-artifact@v4
