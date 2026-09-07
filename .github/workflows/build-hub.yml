@@ -34,6 +34,12 @@ jobs:
         with:
           submodules: recursive
 
+      # the hub carries the family dns profile inside itself, and the website links to the copy
+      # in source/. if someone edited the app's copy and forgot to run the script, the two would
+      # hand out different files. fail here, in seconds, rather than after the long build.
+      - name: check the dns profile matches the app
+        run: node scripts/fmx/dns-profile.js --check
+
       - name: tools
         run: brew install ldid xcbeautify
 

@@ -150,6 +150,10 @@ final class FMXSwitchStore {
         for s in self.switches {
             dictionary[self.blockPrefix + s.key] = self.isBlocked(s.key)
         }
+        // the adult-websites switch (FMXAdultBlock) is not one of the app switches - nothing inside
+        // instagram or youtube reads it - but it goes in the same file so the phone's whole state
+        // sits in one place.
+        dictionary[self.blockPrefix + FMXAdultBlock.switchKey] = self.isBlocked(FMXAdultBlock.switchKey)
         dictionary[self.waitKey] = self.waitSeconds
         dictionary[self.waitChangedKey] = self.defaults.double(forKey: self.waitChangedKey)
         dictionary["fmx.updatedAt"] = Date().timeIntervalSince1970

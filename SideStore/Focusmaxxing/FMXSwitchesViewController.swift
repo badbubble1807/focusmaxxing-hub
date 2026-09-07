@@ -14,17 +14,24 @@
 //  at the bottom: the wait itself, 10 to 30 seconds, locked for 24 hours after every
 //  change. a change lands the next time the app is opened; the footer says so.
 //
+//  the first section is the adult-websites row. it is not an app switch: the block itself
+//  lives in the phone's own settings, so the row only shows the state and opens
+//  FMXAdultViewController, which holds the pill, the wait and the two steps.
+//
+//  the phase, the three colours and the row below are shared with that screen, so they are
+//  not private to this file.
+//
 
 import UIKit
 
-private enum FMXPhase {
+enum FMXPhase {
     case off             // allowed; a tap blocks, instantly
     case on              // blocked; a tap starts the wait
     case counting(Int)   // waiting; taps are ignored
     case armed           // the wait is up; a tap unblocks
 }
 
-private extension UIColor {
+extension UIColor {
     static let fmxGreen = UIColor(red: 0.20, green: 0.78, blue: 0.45, alpha: 1.0)
     static let fmxRed   = UIColor(red: 0.93, green: 0.33, blue: 0.31, alpha: 1.0)
     static let fmxAmber = UIColor(red: 0.96, green: 0.68, blue: 0.20, alpha: 1.0)
@@ -32,7 +39,7 @@ private extension UIColor {
 
 // MARK: - the row
 
-private final class FMXSwitchCell: UITableViewCell {
+final class FMXSwitchCell: UITableViewCell {
     let titleLabel = UILabel()
     let subLabel = UILabel()
     let statusLabel = UILabel()
@@ -178,6 +185,7 @@ private final class FMXWaitCell: UITableViewCell {
 
 final class FMXSwitchesViewController: UITableViewController {
     private enum Section: Int, CaseIterable {
+        case adult
         case instagram
         case youtube
         case wait
@@ -236,7 +244,7 @@ final class FMXSwitchesViewController: UITableViewController {
         switch section {
         case .instagram: return self.store.switches(for: .instagram)
         case .youtube: return self.store.switches(for: .youtube)
-        case .wait: return []
+        case .adult, .wait: return []
         }
     }
 
@@ -267,7 +275,8 @@ final class FMXSwitchesViewController: UITableViewController {
 
     private func refreshVisible() {
         for indexPath in self.tableView.indexPathsForVisibleRows ?? [] {
-            guard let section = Section(rawValue: indexPath.section), section != .wait,
+            // the adult row has no countdown of its own (its screen holds it), so it is left alone
+            guard let section = Section(rawValue: indexPath.section), section != .wait, section != .adult,
                   let cell = self.tableView.cellForRow(at: indexPath) as? FMXSwitchCell else { continue }
             let sw = self.switches(in: section)[indexPath.row]
             cell.show(self.phase(for: sw.key))
@@ -295,11 +304,15 @@ final class FMXSwitchesViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         guard let section = Section(rawValue: section) else { return 0 }
-        return section == .wait ? 1 : self.switches(in: section).count
+        switch section {
+        case .adult, .wait: return 1
+        case .instagram, .youtube: return self.switches(in: section).count
+        }
     }
 
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         switch Section(rawValue: section) {
+        case .adult: return "The whole phone"
         case .instagram: return FMXApp.instagram.title
         case .youtube: return FMXApp.youtube.title
         case .wait: return "The wait"
@@ -309,6 +322,8 @@ final class FMXSwitchesViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch Section(rawValue: section) {
+        case .adult:
+            return "This one is not inside an app. Focusmaxxing Hub cannot block a website by itself, so it walks you through the two settings on the phone that can. Tap the row."
         case .instagram, .youtube:
             let app = section == Section.instagram.rawValue ? FMXApp.instagram : FMXApp.youtube
             return "Green is blocked, red is allowed. Blocking is instant; unblocking makes you wait, and leaving this screen starts the wait over. Changes apply the next time \(app.title) is opened."
@@ -321,6 +336,17 @@ final class FMXSwitchesViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let section = Section(rawValue: indexPath.section) else { return UITableViewCell() }
+
+        if section == .adult {
+            // the same row as a switch, but the pill only shows the state: tapping anywhere opens
+            // the adult screen, where the pill, the countdown and the two steps live together.
+            let cell = FMXSwitchCell(style: .default, reuseIdentifier: nil)
+            cell.titleLabel.text = "Adult websites"
+            cell.subLabel.text = "Screen Time and a private DNS, set up from here"
+            cell.show(self.store.isBlocked(FMXAdultBlock.switchKey) ? .on : .off)
+            cell.onTap = { [weak self] in self?.openAdult() }
+            return cell
+        }
 
         if section == .wait {
             let cell = FMXWaitCell(style: .default, reuseIdentifier: nil)
@@ -349,6 +375,16 @@ final class FMXSwitchesViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         guard let section = Section(rawValue: indexPath.section), section != .wait else { return }
+        if section == .adult {
+            self.openAdult()
+            return
+        }
         self.tapped(self.switches(in: section)[indexPath.row])
+    }
+
+    private func openAdult() {
+        // a second tap while the first screen is still sliding in would put two of them on the pile
+        guard let navigationController = self.navigationController, navigationController.topViewController === self else { return }
+        navigationController.pushViewController(FMXAdultViewController(), animated: true)
     }
 }

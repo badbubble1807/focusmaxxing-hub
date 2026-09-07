@@ -25,6 +25,13 @@ public enum FMXLinks {
     public static let legalURL = URL(string: "https://github.com/\(repository)#open-source--licensing")!
     public static let upgradeURL = URL(string: "https://github.com/\(repository)#pro")!
 
+    // the family dns profile, for the "install it from a link" route on the adult-websites screen.
+    // it goes through jsdelivr rather than raw.githubusercontent on purpose: raw.githubusercontent
+    // sends a plain-text profile as "text/plain", and safari then shows the customer a page full of
+    // xml instead of offering to install it. jsdelivr sends it as a file, which is what safari needs.
+    // point this at the website's own copy once the domain exists.
+    public static let dnsProfileURL = URL(string: "https://cdn.jsdelivr.net/gh/\(repository)@main/source/focusmaxxing-family-dns.mobileconfig")!
+
     // the helper (LocalDevVPN on the App Store). the enable link switches it on and it calls the hub back on our url scheme.
     public static let helperAppStoreURL = URL(string: "https://apps.apple.com/app/id6755608044")!
     public static let helperEnableURL = URL(string: "localdevvpn://enable?scheme=sidestore")!

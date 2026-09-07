@@ -75,7 +75,7 @@ public enum OperationError: LocalizedError, CustomNSError, Sendable, Equatable {
         case .notAuthenticated:
             return "You are not signed in."
         case .unknownUDID:
-            return "Focusmaxxing Hub could not determine this device's UDID. Please replace your pairing using iloader."
+            return "Focusmaxxing Hub could not determine this device's UDID. Please replace your pairing using Focusmaxxing Setup."
         case .invalidApp:
             return "The app is in an invalid format."
         case .invalidParameters(let msg):
@@ -139,7 +139,7 @@ public enum OperationError: LocalizedError, CustomNSError, Sendable, Equatable {
             if let reason, !reason.isEmpty {
                 return "VPN Connection Error:\n\(reason)\n\nPlease make sure LocalDevVPN is connected and running properly."
             }
-            return "You do not appear to be connected to VPN.\n\nPlease make sure LocalDevVPN is connected and running! If the issue persists, replace your pairing with iloader or try restarting the device."
+            return "You do not appear to be connected to VPN.\n\nPlease make sure LocalDevVPN is connected and running! If the issue persists, replace your pairing with Focusmaxxing Setup or try restarting the device."
         case .noDevice(let reason):
             if let reason, !reason.isEmpty {
                 return "Focusmaxxing Hub is unable to reach the device endpoint:\n\(reason)\n\nPlease check your Connection Configuration in Settings."
@@ -149,9 +149,9 @@ public enum OperationError: LocalizedError, CustomNSError, Sendable, Equatable {
             return reason.isEmpty ? "Device is not reachable at the specified IP or Endpoint." : reason
         case .invalidPairingFile(let reason):
             if let reason, !reason.isEmpty {
-                return "The current pairing file is invalid or missing. Reason: \(reason)\n\nPlease make sure to input a valid pairing file! If the issue persists, replace your pairing with iloader."
+                return "The current pairing file is invalid or missing. Reason: \(reason)\n\nPlease make sure to input a valid pairing file! If the issue persists, replace your pairing with Focusmaxxing Setup."
             }
-            return "The current pairing file is invalid or missing.\n\nPlease make sure to input a valid pairing file! If the issue persists, replace your pairing with iloader."
+            return "The current pairing file is invalid or missing.\n\nPlease make sure to input a valid pairing file! If the issue persists, replace your pairing with Focusmaxxing Setup."
         case .minimuxerNotStarted:
             return "Minimuxer has not been started yet.\n\nPlease complete pairing or start minimuxer before performing operations."
         case .pairingNotComplete:
