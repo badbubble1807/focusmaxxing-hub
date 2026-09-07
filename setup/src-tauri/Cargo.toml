@@ -43,4 +43,9 @@ plist-macro = "0.1.6"
 tokio-util = "0.7.18"
 rootcause = "0.12.1"
 thiserror = "2.0.18"
+# the two pieces of the signing certificate, written out for the hub to pick up (see
+# sideload.rs, hand_certificate_to_hub). both versions are the ones the signing library
+# itself uses, so nothing new is compiled.
+rsa = "0.9.10"
+x509-cert = "0.2.5"
 strum = {version = "0.28.0", features = ["derive"] }

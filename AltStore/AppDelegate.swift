@@ -139,6 +139,12 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         // Perform one-time maintenance tasks (e.g. Keychain clearance for 0.6.4*) before initializing services
         MaintenanceManager.shared.performMaintenanceIfNeeded()
 
+        // focusmaxxing hub: if the computer step left its signing certificate in our Documents
+        // folder, take it in before anything else can go and ask apple for a different one (which
+        // would revoke this one and break the two custom apps). runs after the maintenance step
+        // above because that one may clear the keychain.
+        FMXCertificateHandoff.adoptIfPresent()
+
         // Trigger daily boot sync for Anisette servers if needed
         Task.detached {
             await AnisetteServersManager.shared.performDailySyncIfNeeded()

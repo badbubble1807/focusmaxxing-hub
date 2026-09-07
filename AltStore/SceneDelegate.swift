@@ -35,7 +35,12 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate
     {
         // Called as the scene transitions from the foreground to the background.
         // Use this method to undo the changes made on entering the background.
-        
+
+        // focusmaxxing hub: the computer step may have written its signing certificate while the
+        // hub was sitting in the background, so look again on the way back in. costs one check for
+        // a file that is not there.
+        FMXCertificateHandoff.adoptIfPresent()
+
         // applicationWillEnterForeground is _not_ called when launching app,
         // whereas sceneWillEnterForeground _is_ called when launching.
         // As a result, DatabaseManager might not be started yet, so just return if it isn't

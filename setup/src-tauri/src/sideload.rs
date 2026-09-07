@@ -8,14 +8,24 @@ use crate::{
     device::{DeviceInfoMutex, get_provider, get_provider_from_connection, get_usbmuxd},
     devmode,
     error::AppError,
-    links::{HUB_IPA_URL, HUB_PAIRING_FILE},
+    links::{HUB_CERTIFICATE_FILE, HUB_IPA_URL, HUB_PAIRING_FILE, MACHINE_NAME},
     operation::Operation,
     pairing::{get_hub_bundle_id, place_file},
+    secure_storage::create_sideloading_storage,
 };
-use isideload::sideload::{application::SpecialApp, sideloader::Sideloader};
+use idevice::provider::IdeviceProvider;
+use isideload::{
+    dev::certificates::CertificatesApi,
+    sideload::{
+        application::SpecialApp, builder::MaxCertsBehavior, cert_identity::CertificateIdentity,
+        sideloader::Sideloader,
+    },
+};
+use rsa::pkcs8::EncodePrivateKey;
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, Window};
 use tracing::{info, warn};
+use x509_cert::der::Encode;
 
 pub type SideloaderMutex = Mutex<Option<Sideloader>>;
 
@@ -150,14 +160,23 @@ pub async fn install_hub_operation(
         place_file(
             device.pairing,
             &provider,
-            bundle_id,
+            bundle_id.clone(),
             HUB_PAIRING_FILE.to_string(),
         )
         .await,
     )?;
-    op.move_on("pairing", "devmode")?;
 
-    // 4. developer mode: read it and reveal the switch. never fails the install
+    op.move_on("pairing", "certificate")?;
+
+    // 4. the signing certificate, into the same folder. this is what stops the hub asking apple
+    // for a certificate of its own the first time it is opened; see hand_certificate_to_hub.
+    op.fail_if_err(
+        "certificate",
+        hand_certificate_to_hub(&handle, &provider, bundle_id).await,
+    )?;
+    op.move_on("certificate", "devmode")?;
+
+    // 5. developer mode: read it and reveal the switch. never fails the install
     let developer_mode = match devmode::status_and_reveal(&device.info).await {
         Ok(on) => Some(on),
         Err(e) => {
@@ -168,6 +187,102 @@ pub async fn install_hub_operation(
     op.complete("devmode")?;
     info!("hub installed; developer mode {:?}", developer_mode);
     Ok(HubInstallResult { developer_mode })
+}
+
+// writes the signing certificate this computer just used into the hub's own Documents folder,
+// next to the pairing file, as its two raw pieces: the certificate apple issued and the private
+// key that goes with it.
+//
+// why it is worth a step of its own: the signing library already bakes the same certificate into
+// the hub as ALTCertificate.p12, locked with the "machine id" apple gave it, and the hub is meant
+// to work that password out again from apple's certificate list. on the owner's phone it did not
+// (2026-09-07: "No signable certificate found for serial 2E30F41A..."), so the hub asked apple for
+// a certificate of its own - and a free apple id only keeps one, so apple took this one away. the
+// hub was then wearing a revoked certificate: the two custom apps stopped being renewable and the
+// hub demanded to be re-signed. handing the certificate over ourselves, with no password and no
+// archive format in the way, is the one form of it nothing can misread.
+async fn hand_certificate_to_hub(
+    handle: &AppHandle,
+    provider: &dyn IdeviceProvider,
+    bundle_id: String,
+) -> Result<(), AppError> {
+    let sideloader_state = handle.state::<SideloaderMutex>();
+    let mut sideloader = SideloaderGuard::take(&sideloader_state)?;
+
+    let team = sideloader.get_mut().get_team().await?;
+    let email = sideloader.get_mut().get_email().to_string();
+    let storage = create_sideloading_storage(handle)?;
+
+    // the serial numbers apple already has. the lookup below cannot make a certificate (it is
+    // told to fail instead), but if it somehow came back with one apple did not have a moment
+    // ago, it would not be the one the hub was just signed with, and handing that over would
+    // leave the hub wearing one certificate and signing with another.
+    let known_serials: Vec<String> = sideloader
+        .get_mut()
+        .get_dev_session()
+        .list_ios_certs(&team)
+        .await?
+        .iter()
+        .filter_map(|cert| cert.serial_number.clone())
+        .collect();
+
+    let identity = CertificateIdentity::retrieve(
+        MACHINE_NAME,
+        &email,
+        sideloader.get_mut().get_dev_session(),
+        &team,
+        storage.as_ref(),
+        &MaxCertsBehavior::Error,
+    )
+    .await?;
+
+    let serial = identity.get_serial_number();
+    if !known_serials.is_empty() && !known_serials.iter().any(|known| same_serial(known, &serial)) {
+        return Err(AppError::Misc(
+            "Could not hand the signing certificate to Focusmaxxing Hub: the certificate found was not the one it was signed with. Try again.".into(),
+        ));
+    }
+
+    let certificate_der = identity
+        .certificate
+        .to_der()
+        .map_err(|e| AppError::Misc(format!("Failed to write out the certificate: {e}")))?;
+    let private_key_der = identity
+        .private_key
+        .to_pkcs8_der()
+        .map_err(|e| AppError::Misc(format!("Failed to write out the private key: {e}")))?
+        .as_bytes()
+        .to_vec();
+
+    let mut contents = plist::Dictionary::new();
+    contents.insert("certificate".into(), plist::Value::Data(certificate_der));
+    contents.insert("privateKey".into(), plist::Value::Data(private_key_der));
+    contents.insert("serialNumber".into(), plist::Value::String(serial.clone()));
+    contents.insert(
+        "machineName".into(),
+        plist::Value::String(identity.machine_name.clone()),
+    );
+    contents.insert(
+        "machineId".into(),
+        plist::Value::String(identity.machine_id.clone()),
+    );
+
+    let mut bytes: Vec<u8> = Vec::new();
+    plist::Value::Dictionary(contents)
+        .to_writer_xml(&mut bytes)
+        .map_err(|e| AppError::Misc(format!("Failed to write out the certificate file: {e}")))?;
+
+    place_file(bytes, provider, bundle_id, HUB_CERTIFICATE_FILE.to_string()).await?;
+    info!("handed the signing certificate (serial {serial}) to the hub");
+
+    Ok(())
+}
+
+// apple's serial numbers turn up spelled two ways: with the leading zeros and without. the hub
+// compares them the same way (FMXCertificateHandoff.sameSerial).
+fn same_serial(one: &str, other: &str) -> bool {
+    let strip = |serial: &str| serial.to_uppercase().trim_start_matches('0').to_string();
+    !one.is_empty() && !other.is_empty() && strip(one) == strip(other)
 }
 
 pub async fn download(url: impl AsRef<str>, dest: &PathBuf) -> Result<(), AppError> {

@@ -69,6 +69,7 @@ export const S = {
       download: "Download Focusmaxxing Hub",
       install: "Sign it for your phone and install it",
       pairing: "Connect the Hub to your phone",
+      certificate: "Let the Hub renew your apps",
       devmode: "Check Developer Mode",
     },
     failed: "That did not work.",

@@ -184,6 +184,20 @@ public final class CertificateManager: @unchecked Sendable {
         setCertificateMetadata(metadataDict, for: x509.serialNumber)
     }
     
+    // focusmaxxing hub: remember what apple says about a certificate - above all the machine id,
+    // which is the password an iloader-style signer locks the embedded ALTCertificate.p12 with -
+    // without touching the private key we may already be holding for it. saveX509Certificate()
+    // would put a bare certificate in the keychain slot where that key lives.
+    public func rememberPortalDetails(_ x509: ALTX509Certificate) {
+        var metadataDict: [String: String] = getCertificateMetadata(for: x509.serialNumber) ?? [:]
+        metadataDict["name"] = x509.name
+        metadataDict["serialNumber"] = x509.serialNumber
+        if let v = x509.machineIdentifier { metadataDict["machineIdentifier"] = v }
+        if let v = x509.machineName { metadataDict["machineName"] = v }
+        if let v = x509.requesterEmail { metadataDict["requesterEmail"] = v }
+        setCertificateMetadata(metadataDict, for: x509.serialNumber)
+    }
+
     public func getLocalCertificate(serialNumber: String) -> ALTCertificate? {
         if let active = self.activeCertificate, active.serialNumber == serialNumber {
             return active.certificate
@@ -274,40 +288,58 @@ public final class CertificateManager: @unchecked Sendable {
 
     private func loadEmbeddedCertificate(for serialNumber: String, fallbackPassword: String?) -> ALTCertificate? {
         let targetBundle = Bundle.main
-        if FileManager.default.fileExists(atPath: targetBundle.certificateURL.path),
-           let data = try? Data(contentsOf: targetBundle.certificateURL)
-        {
-            let possiblePasswords: [(name: String, value: String?)] = [
-                ("incomingCertSerial", serialNumber),
-                ("fallbackPassword", fallbackPassword),
-                ("activeCertSerial", activeCertificate?.certificate.serialNumber),
-                ("machineIdentifier", activeCertificate?.certificate.machineIdentifier),
-                ("activeCertPassword", activeCertificate?.password),
-                ("keychainPassword", Keychain.shared.signingCertificatePassword),
-                ("nil", nil)
-            ]
+        guard FileManager.default.fileExists(atPath: targetBundle.certificateURL.path) else {
+            // focusmaxxing hub: at debug level, not verbose. when the hub cannot reuse the
+            // certificate the computer step signed it with, this line and the one below are the
+            // difference between knowing why and guessing (see FMXCertificateHandoff).
+            debugLog("[CertificateManager] getSignableCertificate: No ALTCertificate.p12 inside the app bundle.")
+            return nil
+        }
+        guard let data = try? Data(contentsOf: targetBundle.certificateURL) else {
+            debugLog("[CertificateManager] getSignableCertificate: ALTCertificate.p12 is in the bundle but could not be read.")
+            return nil
+        }
 
-            var signableCert: ALTCertificate?
-            for (pwdName, password) in possiblePasswords {
-                verboseLog("[CertificateManager] getSignableCertificate: Attempting decryption with password source '\(pwdName)'...")
-                if let cert = try? ALTCertificate(p12Data: data, password: password) {
-                    signableCert = cert
-                    if cert.serialNumber.lowercased() == serialNumber.lowercased() {
-                        debugLog("[CertificateManager] getSignableCertificate: Decrypted embedded p12 using '\(pwdName)' with matching serial '\(cert.serialNumber)'.")
-                        break
-                    } else {
-                        verboseLog("[CertificateManager] getSignableCertificate: Decrypted embedded p12 using '\(pwdName)', but serial mismatch (certSerial: \(cert.serialNumber), targetSerial: \(serialNumber)).")
-                    }
+        let possiblePasswords: [(name: String, value: String?)] = [
+            ("incomingCertSerial", serialNumber),
+            ("fallbackPassword", fallbackPassword),
+            // focusmaxxing hub: the machine id apple gave this certificate, remembered from the
+            // last time its portal entry was seen. iloader-style signers lock the embedded p12
+            // with it, and the callers that have no fallback to hand (UpdateAppCertificateOperation)
+            // used to have no way of knowing it.
+            ("rememberedMachineID", getCertificateMetadata(for: serialNumber)?["machineIdentifier"]),
+            ("bundleCertificateID", Bundle.main.object(forInfoDictionaryKey: Bundle.Info.certificateID) as? String),
+            ("activeCertSerial", activeCertificate?.certificate.serialNumber),
+            ("machineIdentifier", activeCertificate?.certificate.machineIdentifier),
+            ("activeCertPassword", activeCertificate?.password),
+            ("keychainPassword", Keychain.shared.signingCertificatePassword),
+            ("nil", nil)
+        ]
+
+        var signableCert: ALTCertificate?
+        var triedNames = [String]()
+        for (pwdName, password) in possiblePasswords {
+            verboseLog("[CertificateManager] getSignableCertificate: Attempting decryption with password source '\(pwdName)'...")
+            triedNames.append(pwdName)
+            if let cert = try? ALTCertificate(p12Data: data, password: password) {
+                signableCert = cert
+                if cert.serialNumber.lowercased() == serialNumber.lowercased() {
+                    debugLog("[CertificateManager] getSignableCertificate: Decrypted embedded p12 using '\(pwdName)' with matching serial '\(cert.serialNumber)'.")
+                    break
                 } else {
-                    verboseLog("[CertificateManager] getSignableCertificate: Failed to decrypt embedded p12 using password source '\(pwdName)'.")
+                    verboseLog("[CertificateManager] getSignableCertificate: Decrypted embedded p12 using '\(pwdName)', but serial mismatch (certSerial: \(cert.serialNumber), targetSerial: \(serialNumber)).")
                 }
-            }
-
-            if signableCert != nil || serialNumber.isEmpty {
-                debugLog("[CertificateManager] getSignableCertificate: Returning certificate (serial: '\(signableCert?.serialNumber ?? "nil")', targetSerial: '\(serialNumber)').")
-                return signableCert
+            } else {
+                verboseLog("[CertificateManager] getSignableCertificate: Failed to decrypt embedded p12 using password source '\(pwdName)'.")
             }
         }
+
+        if signableCert != nil || serialNumber.isEmpty {
+            debugLog("[CertificateManager] getSignableCertificate: Returning certificate (serial: '\(signableCert?.serialNumber ?? "nil")', targetSerial: '\(serialNumber)').")
+            return signableCert
+        }
+
+        debugLog("[CertificateManager] getSignableCertificate: ALTCertificate.p12 is in the bundle (\(data.count) bytes) but none of the \(triedNames.count) passwords opened it (\(triedNames.joined(separator: ", "))).")
         return nil
     }
 

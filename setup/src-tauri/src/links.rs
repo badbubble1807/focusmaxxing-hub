@@ -17,6 +17,12 @@ pub const HUB_DISPLAY_NAME: &str = "Focusmaxxing Hub";
 /// where the hub expects its pairing file, inside its Documents folder
 pub const HUB_PAIRING_FILE: &str = "ALTPairingFile.mobiledevicepairing";
 
+/// where we leave the signing certificate for the hub, in the same folder. the hub reads it at
+/// start-up and keeps it (SideStore/Focusmaxxing/FMXCertificateHandoff.swift holds the same name;
+/// the two must match). without it the hub asks apple for a certificate of its own, and a free
+/// apple id only keeps one, so apple revokes this one and everything signed here stops working.
+pub const HUB_CERTIFICATE_FILE: &str = "FocusmaxxingCertificate.plist";
+
 /// the name this computer shows up under in the apple id's certificate list and in the pairing
 pub const MACHINE_NAME: &str = "Focusmaxxing Setup";
 

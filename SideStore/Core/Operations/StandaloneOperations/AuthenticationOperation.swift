@@ -595,17 +595,50 @@ private extension AuthenticationOperation {
             return keyStoreCert
         }
         
-        // TODO: @mahee96: we have moved away from machineID as password for certs, but external/thirdparty like iloader might not have, 
-        //                 so we still support the machineId as fallback for now 
-        if let mainBundleCertSerial = mainBundleCertSerial,
-           let certificate = portalCertificates.first(where: { $0.serialNumber.lowercased() == mainBundleCertSerial.lowercased() }),
-           var cert = CertificateManager.shared.getSignableCertificate(for: mainBundleCertSerial, fallbackPassword: certificate.machineIdentifier) 
+        // focusmaxxing hub: the certificate this copy of the hub is signed with, as apple lists it.
+        // matched on the serial the way FMXCertificateHandoff spells them, because the computer
+        // step writes serials with their leading zeros dropped and the phone reads them off the
+        // certificate with the zeros still there; about one certificate in sixteen used to miss
+        // its own entry here and take the hub straight to "ask apple for another one".
+        let runningBundleCertificate = mainBundleCertSerial.flatMap { serial in
+            portalCertificates.first { FMXCertificateHandoff.sameSerial($0.serialNumber, serial) }
+        }
+        if let runningBundleCertificate = runningBundleCertificate {
+            // remember its machine id, so the operations that later look the certificate up
+            // without one to hand can still open an embedded p12 locked with it
+            CertificateManager.shared.rememberPortalDetails(runningBundleCertificate)
+        }
+
+        // TODO: @mahee96: we have moved away from machineID as password for certs, but external/thirdparty like iloader might not have,
+        //                 so we still support the machineId as fallback for now
+        // looked up by the serial as the certificate itself spells it, not as the bundle's
+        // ALTCertificateID does, because that is the spelling everything else here stores
+        if let certificate = runningBundleCertificate,
+           var cert = CertificateManager.shared.getSignableCertificate(for: certificate.serialNumber, fallbackPassword: certificate.machineIdentifier)
         {
             cert.machineIdentifier = certificate.machineIdentifier
             self.debugLog("[Authentication] Using running bundle certificate (\(cert.serialNumber)) with valid private key from signable cache.")
             return cert
         }
-        
+
+        // focusmaxxing hub: last look for the certificate the computer step left in our Documents
+        // folder. it is normally taken in at launch (see FMXCertificateHandoff); this covers a hub
+        // that was already running while the computer wrote it.
+        if FMXCertificateHandoff.adoptIfPresent(),
+           let adopted = CertificateManager.shared.activeCertificate?.certificate,
+           let certificate = portalCertificates.first(where: { FMXCertificateHandoff.sameSerial($0.serialNumber, adopted.serialNumber) })
+        {
+            var cert = adopted
+            cert.machineIdentifier = certificate.machineIdentifier
+            self.debugLog("[Authentication] Using the certificate the computer step handed over (\(cert.serialNumber)).")
+            return cert
+        }
+
+        // focusmaxxing hub: the line to look for when a phone comes back with revoked apps. from
+        // here on the hub asks apple for a certificate of its own, and on a free apple id that
+        // costs the customer the one they already had.
+        self.debugLog("[Authentication] Could not reuse the certificate this hub is signed with (\(mainBundleCertSerial ?? "no ALTCertificateID in the bundle")). Apple \(runningBundleCertificate == nil ? "does not list it" : "still lists it"), and lists \(portalCertificates.count) certificate(s) in all. Asking for a new one.")
+
         if portalCertificates.isEmpty {
             // No portalCertificates, so request a new one.
             return try await self.requestCertificate(for: team, session: session)

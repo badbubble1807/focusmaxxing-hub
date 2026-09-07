@@ -6,8 +6,19 @@ import { Suggestions } from "./components/Suggestions";
 import { AppError, fullMessage, shortMessage, suggestionsFor } from "./errors";
 import { S } from "./strings";
 
-export type StepId = "download" | "install" | "pairing" | "devmode";
-export const STEP_IDS: StepId[] = ["download", "install", "pairing", "devmode"];
+export type StepId =
+  | "download"
+  | "install"
+  | "pairing"
+  | "certificate"
+  | "devmode";
+export const STEP_IDS: StepId[] = [
+  "download",
+  "install",
+  "pairing",
+  "certificate",
+  "devmode",
+];
 
 export type InstallResult = { developerMode: boolean | null };
 
