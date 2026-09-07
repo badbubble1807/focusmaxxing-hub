@@ -172,10 +172,16 @@ class FMXCell: UITableViewCell {
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
 
-        // the row's own default is the starting point, not a fresh listGroupedCell(): the default
-        // is the one that knows where this row sits in its group, which is what rounds the top of
-        // the first row and the bottom of the last. only the colour is ours.
-        var background = self.defaultBackgroundConfiguration()
+        // the row's own default is the starting point where it can be had: it is the one that
+        // knows where this row sits in its group, which is what rounds the top of the first row
+        // and the bottom of the last. it only exists from iOS 16, so older phones get the plain
+        // grouped-row default instead. either way only the colour is ours.
+        var background: UIBackgroundConfiguration
+        if #available(iOS 16.0, *) {
+            background = self.defaultBackgroundConfiguration()
+        } else {
+            background = UIBackgroundConfiguration.listGroupedCell()
+        }
         background.backgroundColor = (state.isHighlighted || state.isSelected) ? FMXTheme.cardLifted : FMXTheme.card
         self.backgroundConfiguration = background
     }
