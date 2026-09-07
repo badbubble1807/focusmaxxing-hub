@@ -1,14 +1,25 @@
-// focusmaxxing hub - start the "build hub" cloud build from this PC and watch it finish.
+// focusmaxxing hub - start a cloud build from this PC and watch it finish.
 // plain node, no packages. the github token comes from the git credential helper
 // (the same one git push uses), it is never printed.
 //
-// usage: node scripts/fmx/dispatch.js            start a build and watch it
-//        node scripts/fmx/dispatch.js watch      only watch the newest run
+// usage: node scripts/fmx/dispatch.js                 start a "build hub" run and watch it
+//        node scripts/fmx/dispatch.js watch           only watch the newest "build hub" run
+//        node scripts/fmx/dispatch.js setup           start a "build setup" run (the computer step) and watch it
+//        node scripts/fmx/dispatch.js setup watch     only watch the newest "build setup" run
 const { execSync } = require("child_process");
 
 const REPO = "badbubble1807/focusmaxxing-hub";
-const WORKFLOW = "build-hub.yml";
 const BRANCH = "main";
+// each build: its workflow file and the release it publishes to
+const TARGETS = {
+  hub: { workflow: "build-hub.yml", tag: "hub" },
+  setup: { workflow: "build-setup.yml", tag: "setup" },
+};
+
+const args = process.argv.slice(2);
+const targetName = TARGETS[args[0]] ? args.shift() : "hub";
+const { workflow: WORKFLOW, tag: TAG } = TARGETS[targetName];
+const watchOnly = args[0] === "watch";
 
 const cred = execSync("git credential fill", { input: "protocol=https\nhost=github.com\n", encoding: "utf8" });
 const token = cred.split("\n").find(l => l.startsWith("password=")).slice("password=".length);
@@ -24,14 +35,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const stamp = () => new Date().toTimeString().slice(0, 8);
 
 (async () => {
-  const watchOnly = process.argv[2] === "watch";
   let before = new Set();
   if (!watchOnly) {
     const runs = await api("GET", "/actions/workflows/" + WORKFLOW + "/runs?per_page=5");
     for (const run of (runs.json && runs.json.workflow_runs) || []) before.add(run.id);
     const d = await api("POST", "/actions/workflows/" + WORKFLOW + "/dispatches", { ref: BRANCH });
     if (d.status !== 204) { console.error("could not start the build:", d.status, d.text.slice(0, 300)); process.exit(1); }
-    console.log(stamp(), "build requested");
+    console.log(stamp(), targetName, "build requested");
   }
   // find the run
   let run = null;
@@ -60,7 +70,7 @@ const stamp = () => new Date().toTimeString().slice(0, 8);
         }
         process.exit(2);
       }
-      const rel = await api("GET", "/releases/tags/hub");
+      const rel = await api("GET", "/releases/tags/" + TAG);
       for (const a of (rel.json && rel.json.assets) || []) console.log("release asset:", a.name, Math.round(a.size / 1e6) + " MB", a.browser_download_url);
       process.exit(0);
     }

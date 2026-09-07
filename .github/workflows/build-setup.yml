@@ -1,0 +1,103 @@
+# Builds Focusmaxxing Setup, the computer step, for Windows.
+#
+# Run it from the Actions tab (or from the PC: `node scripts/fmx/dispatch.js setup`). The
+# program in setup/ is a trimmed fork of iloader (Rust + a small web screen, packaged by Tauri).
+# The finished files land on the "setup" release:
+#   focusmaxxing-setup.exe            the program itself, nothing to install: download and run
+#   focusmaxxing-setup-installer.exe  the same program as a normal Windows installer
+# Both are unsigned, so Windows shows "Windows protected your PC" once; More info → Run anyway.
+
+name: build setup
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: build-setup
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build setup
+    runs-on: windows-latest
+    env:
+      VERSION: 1.0.${{ github.run_number }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: setup
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: visual studio tools
+        uses: ilammy/msvc-dev-cmd@v1
+
+      # the crypto library inside is built from source and needs these two
+      - name: perl and make
+        run: choco install strawberryperl make --no-progress
+
+      - name: node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: setup/package-lock.json
+
+      # the rust build is slow from cold; keep the compiled crates between runs
+      - name: rust cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            setup/src-tauri/target
+          key: setup-rust-${{ hashFiles('setup/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            setup-rust-
+
+      - name: frontend packages
+        run: npm ci
+
+      - name: build
+        run: |
+          echo "version $VERSION"
+          printf '{"version":"%s"}' "$VERSION" > version.json
+          # the restored cache carries the previous run's installer; the copy below wants exactly one
+          rm -rf src-tauri/target/release/bundle
+          npm run tauri -- build --config version.json
+          echo "==== bundles ===="
+          ls -la src-tauri/target/release/bundle/nsis
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe ../focusmaxxing-setup-installer.exe
+          cp src-tauri/target/release/focusmaxxing-setup.exe ../focusmaxxing-setup.exe
+          ls -la ../focusmaxxing-setup*.exe
+
+      - name: keep a copy
+        uses: actions/upload-artifact@v4
+        with:
+          name: focusmaxxing-setup
+          path: |
+            focusmaxxing-setup.exe
+            focusmaxxing-setup-installer.exe
+            setup/src-tauri/Cargo.lock
+          if-no-files-found: error
+
+      - name: publish to the setup release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: setup
+          name: Focusmaxxing Setup
+          body: "Focusmaxxing Setup ${{ env.VERSION }} for Windows. Download focusmaxxing-setup.exe and run it (Windows shows 'Windows protected your PC' once: More info, Run anyway). It needs iTunes from Apple's website. focusmaxxing-setup-installer.exe is the same program as an installer. Free software under the MIT licence; see Open source & licensing inside the program."
+          files: |
+            focusmaxxing-setup.exe
+            focusmaxxing-setup-installer.exe
+          draft: false
+          prerelease: false
+          make_latest: false

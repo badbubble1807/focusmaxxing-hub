@@ -1,0 +1,245 @@
+/* layout only; every colour, button and card comes from public/theme.css (the design system) */
+
+.setup {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.setup-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.setup-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.setup-head .note {
+  margin-top: 2px;
+}
+
+.step {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  flex: 1;
+}
+
+.step-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+  background: var(--surface-3);
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.step.active .step-num {
+  background: var(--grad-2);
+  color: var(--on-ink);
+  box-shadow: 0 8px 20px -8px var(--ac1);
+}
+
+.step.done .step-num {
+  background: color-mix(in srgb, var(--ac2) 22%, transparent);
+  color: var(--accent-text);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.tick {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-weight: 800;
+  font-size: 12px;
+  background: var(--grad-2);
+  color: var(--on-ink);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spin {
+  flex: 0 0 auto;
+}
+
+.spin.dark {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-color: rgba(7, 16, 9, 0.25);
+  border-top-color: var(--on-ink);
+}
+
+.oplist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.opstep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.opstep .ico {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-weight: 800;
+}
+
+.opstep.done .ico {
+  color: var(--accent-text);
+}
+
+.opstep.failed {
+  border-color: var(--danger);
+}
+
+.opstep.failed .ico {
+  color: var(--danger);
+}
+
+.opstep.pending {
+  opacity: 0.5;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+}
+
+.failure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+pre.err {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-xs);
+  background: rgba(0, 0, 0, 0.35);
+  font: 12px/1.5 Consolas, "Cascadia Mono", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  color: var(--text);
+  max-height: 220px;
+  overflow: auto;
+}
+
+pre.err.log {
+  max-height: 60vh;
+  white-space: pre;
+}
+
+.phone-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setup-foot {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.adv {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.adv .row {
+  flex-wrap: wrap;
+}
+
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.check input {
+  margin-top: 3px;
+  accent-color: var(--ac2);
+}
+
+select.field {
+  appearance: auto;
+}
+
+select.field option {
+  color: #0d1220;
+  background: #ffffff;
+}
