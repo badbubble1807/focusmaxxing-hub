@@ -18,6 +18,7 @@ Our own code is in [`SideStore/Focusmaxxing/`](SideStore/Focusmaxxing/) and [`Al
 ## What is changed from SideStore
 
 - The name, icon and every piece of text a customer can read say Focusmaxxing Hub.
+- The look is focusmaxxing's own design system, the same one the browser extension and the Windows app wear: a near-black ground, one accent that means *blocked* and a second that means *the wait*, and the mark drawn from the same geometry. It is written down in [`SideStore/Focusmaxxing/FMXTheme.swift`](SideStore/Focusmaxxing/FMXTheme.swift), the pieces are in [`FMXControls.swift`](SideStore/Focusmaxxing/FMXControls.swift), and the app asks for dark mode in `Info.plist`. The switch on each row of the Switches tab is the same control as the one in the other two, down to the numbers.
 - Four tabs instead of five: Switches, Apps, My Apps, Settings. News and Sources are gone.
 - The built-in app list is [`source/apps.json`](source/apps.json): the hub itself and the two custom apps, nothing else. The old "recommended sources" list is replaced by an empty one, [`source/default-sources.json`](source/default-sources.json).
 - Settings: the Patreon, alternate-icon, tutorial and beta-channel sections are hidden; a **Legal** section with one row, *Open source & licensing*, opens the licensing page; feedback goes to this repository's issues.

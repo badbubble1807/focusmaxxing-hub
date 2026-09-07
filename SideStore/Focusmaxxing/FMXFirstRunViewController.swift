@@ -10,6 +10,10 @@
 //  the hub switches the helper on itself through the helper's own "enable" link; the only
 //  helper-related tap the customer makes is Apple's "Allow VPN configuration".
 //
+//  it is the first thing anybody sees of focusmaxxing on a phone, so it is dressed the same as
+//  the rest of the product: the mark at the top, the five steps as a row of bars, one sentence
+//  large enough to read at arm's length, and one glowing button. FMXTheme holds the colours.
+//
 
 import UIKit
 
@@ -45,12 +49,16 @@ final class FMXFirstRunViewController: UIViewController {
     private var helperSwitchedOn = false
     private var waitingForHelper = false
 
+    private let markView = UIImageView()
     private let stepLabel = UILabel()
     private let sentenceLabel = UILabel()
+    private let noteCard = UIView()
     private let noteLabel = UILabel()
+    private let doneRow = UIStackView()
+    private let doneMark = UIImageView()
     private let doneLabel = UILabel()
-    private let button = UIButton(type: .system)
-    private let progress = UIProgressView(progressViewStyle: .default)
+    private let button = FMXPrimaryButton(title: "Next")
+    private let bars = UIStackView()
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -62,52 +70,102 @@ final class FMXFirstRunViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.view.backgroundColor = .systemBackground
+        self.view.backgroundColor = FMXTheme.ink
 
-        self.stepLabel.font = .preferredFont(forTextStyle: .subheadline)
-        self.stepLabel.textColor = .secondaryLabel
+        let backdrop = FMXTheme.backdrop()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(backdrop)
+
+        self.markView.image = UIImage(named: "FMXMark")?.withRenderingMode(.alwaysTemplate)
+        self.markView.tintColor = FMXTheme.teal
+        self.markView.contentMode = .scaleAspectFit
+
+        // one bar per step, the ones behind you lit
+        self.bars.axis = .horizontal
+        self.bars.distribution = .fillEqually
+        self.bars.spacing = 6
+        for _ in self.steps {
+            let bar = UIView()
+            bar.backgroundColor = FMXTheme.surfaceHigh
+            bar.layer.cornerRadius = 2.5
+            self.bars.addArrangedSubview(bar)
+        }
+
+        self.stepLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        self.stepLabel.textColor = FMXTheme.faint
 
         self.sentenceLabel.font = .systemFont(ofSize: 28, weight: .bold)
-        self.sentenceLabel.textColor = .label
+        self.sentenceLabel.textColor = FMXTheme.text
         self.sentenceLabel.numberOfLines = 0
 
-        self.noteLabel.font = .preferredFont(forTextStyle: .body)
-        self.noteLabel.textColor = .secondaryLabel
-        self.noteLabel.numberOfLines = 0
+        self.noteCard.backgroundColor = FMXTheme.card
+        self.noteCard.layer.cornerRadius = FMXTheme.radiusSmall
+        self.noteCard.layer.borderWidth = 1
+        self.noteCard.layer.borderColor = FMXTheme.hairline.cgColor
 
-        self.doneLabel.font = .preferredFont(forTextStyle: .body)
-        self.doneLabel.textColor = .altPrimary
+        self.noteLabel.font = .systemFont(ofSize: 14, weight: .regular)
+        self.noteLabel.textColor = FMXTheme.muted
+        self.noteLabel.numberOfLines = 0
+        self.noteLabel.translatesAutoresizingMaskIntoConstraints = false
+        self.noteCard.addSubview(self.noteLabel)
+
+        self.doneMark.image = UIImage(systemName: "checkmark.circle.fill")
+        self.doneMark.tintColor = FMXTheme.volt
+        self.doneMark.contentMode = .scaleAspectFit
+        self.doneMark.setContentHuggingPriority(.required, for: .horizontal)
+
+        self.doneLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        self.doneLabel.textColor = FMXTheme.accentText
         self.doneLabel.numberOfLines = 0
 
-        self.button.titleLabel?.font = .systemFont(ofSize: 20, weight: .semibold)
-        self.button.setTitleColor(.white, for: .normal)
-        self.button.backgroundColor = .altPrimary
-        self.button.layer.cornerRadius = 16
-        self.button.clipsToBounds = true
+        self.doneRow.axis = .horizontal
+        self.doneRow.alignment = .top
+        self.doneRow.spacing = 8
+        self.doneRow.addArrangedSubview(self.doneMark)
+        self.doneRow.addArrangedSubview(self.doneLabel)
+
         self.button.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
 
-        self.progress.progressTintColor = .altPrimary
-        self.progress.trackTintColor = .quaternaryLabel
-
-        let text = UIStackView(arrangedSubviews: [self.stepLabel, self.sentenceLabel, self.noteLabel, self.doneLabel])
+        let text = UIStackView(arrangedSubviews: [self.stepLabel, self.sentenceLabel, self.noteCard, self.doneRow])
         text.axis = .vertical
-        text.spacing = 16
-        text.translatesAutoresizingMaskIntoConstraints = false
+        text.spacing = 18
+        text.setCustomSpacing(10, after: self.stepLabel)
 
-        for view in [self.progress, text, self.button] {
+        for view in [self.markView, self.bars, text, self.button] {
             view.translatesAutoresizingMaskIntoConstraints = false
             self.view.addSubview(view)
         }
 
         let guide = self.view.safeAreaLayoutGuide
         NSLayoutConstraint.activate([
-            self.progress.topAnchor.constraint(equalTo: guide.topAnchor, constant: 24),
-            self.progress.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 28),
-            self.progress.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -28),
+            backdrop.topAnchor.constraint(equalTo: self.view.topAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            backdrop.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
 
-            text.topAnchor.constraint(equalTo: self.progress.bottomAnchor, constant: 48),
+            self.markView.topAnchor.constraint(equalTo: guide.topAnchor, constant: 20),
+            self.markView.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 28),
+            self.markView.widthAnchor.constraint(equalToConstant: 38),
+            self.markView.heightAnchor.constraint(equalToConstant: 38),
+
+            self.bars.topAnchor.constraint(equalTo: self.markView.bottomAnchor, constant: 28),
+            self.bars.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 28),
+            self.bars.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -28),
+            self.bars.heightAnchor.constraint(equalToConstant: 5),
+
+            text.topAnchor.constraint(equalTo: self.bars.bottomAnchor, constant: 36),
             text.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 28),
             text.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -28),
+            // a long sentence wraps rather than sliding under the button
+            text.bottomAnchor.constraint(lessThanOrEqualTo: self.button.topAnchor, constant: -20),
+
+            self.noteLabel.topAnchor.constraint(equalTo: self.noteCard.topAnchor, constant: 14),
+            self.noteLabel.bottomAnchor.constraint(equalTo: self.noteCard.bottomAnchor, constant: -14),
+            self.noteLabel.leadingAnchor.constraint(equalTo: self.noteCard.leadingAnchor, constant: 14),
+            self.noteLabel.trailingAnchor.constraint(equalTo: self.noteCard.trailingAnchor, constant: -14),
+
+            self.doneMark.widthAnchor.constraint(equalToConstant: 20),
+            self.doneMark.heightAnchor.constraint(equalToConstant: 20),
 
             self.button.leadingAnchor.constraint(equalTo: guide.leadingAnchor, constant: 28),
             self.button.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -28),
@@ -142,41 +200,44 @@ final class FMXFirstRunViewController: UIViewController {
         self.stepLabel.text = "Step \(index + 1) of \(self.steps.count)"
         self.sentenceLabel.text = step.sentence
         self.noteLabel.text = step.note
-        self.noteLabel.isHidden = (step.note == nil)
-        self.progress.setProgress(Float(index + 1) / Float(self.steps.count), animated: true)
+        self.noteCard.isHidden = (step.note == nil)
+
+        for (at, bar) in self.bars.arrangedSubviews.enumerated() {
+            bar.backgroundColor = (at <= index) ? FMXTheme.teal : FMXTheme.surfaceHigh
+        }
 
         switch index {
         case 0, 1:
             self.doneLabel.text = "Done. Focusmaxxing Hub is on your phone, so this step is behind you."
-            self.doneLabel.isHidden = false
+            self.doneRow.isHidden = false
             self.button.setTitle("Next", for: .normal)
 
         case 2:
             if self.isSignedIn {
                 self.doneLabel.text = "Signed in."
-                self.doneLabel.isHidden = false
+                self.doneRow.isHidden = false
                 self.button.setTitle("Next", for: .normal)
             } else {
-                self.doneLabel.isHidden = true
+                self.doneRow.isHidden = true
                 self.button.setTitle("Sign in with Apple ID", for: .normal)
             }
 
         case 3:
             if self.helperSwitchedOn {
                 self.doneLabel.text = "The helper is on."
-                self.doneLabel.isHidden = false
+                self.doneRow.isHidden = false
                 self.button.setTitle("Next", for: .normal)
             } else if self.isHelperInstalled {
                 self.doneLabel.text = "The helper is installed."
-                self.doneLabel.isHidden = false
+                self.doneRow.isHidden = false
                 self.button.setTitle("Switch the helper on", for: .normal)
             } else {
-                self.doneLabel.isHidden = true
+                self.doneRow.isHidden = true
                 self.button.setTitle("Get the helper", for: .normal)
             }
 
         default:
-            self.doneLabel.isHidden = true
+            self.doneRow.isHidden = true
             self.button.setTitle("Open the app list", for: .normal)
         }
     }

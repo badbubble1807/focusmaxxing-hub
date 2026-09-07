@@ -204,6 +204,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             }
         }
         
+        // focusmaxxing hub: the product has one accent colour, and this puts it back if a phone
+        // that ran the store this is forked from remembers a different one. it has to happen
+        // before setTintColor, which is what hands that colour to the window.
+        FMXTheme.apply()
+
         self.setTintColor()
         self.prepareImageCache()
 

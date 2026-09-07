@@ -546,7 +546,7 @@
         <scene sceneID="nhh-BJ-XiT">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="3Ew-ox-i4n" customClass="ForwardingNavigationController" customModule="SideStore" customModuleProvider="target" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="My Apps" image="MyApps" id="4gT-9u-k7y">
+                    <tabBarItem key="tabBarItem" title="My apps" image="MyApps" id="4gT-9u-k7y">
                         <color key="badgeColor" name="Primary"/>
                     </tabBarItem>
                     <toolbarItems/>
@@ -714,7 +714,7 @@
                             <outlet property="delegate" destination="hv7-Ar-voT" id="1PN-pf-cZK"/>
                         </connections>
                     </collectionView>
-                    <navigationItem key="navigationItem" title="My Apps" id="zLJ-Cg-ijh">
+                    <navigationItem key="navigationItem" title="My apps" id="zLJ-Cg-ijh">
                         <barButtonItem key="leftBarButtonItem" systemItem="add" id="4MN-JN-Knh">
                             <connections>
                                 <action selector="sideloadApp:" destination="hv7-Ar-voT" id="Tjv-oi-2H0"/>
@@ -945,7 +945,7 @@
             <color red="1" green="1" blue="1" alpha="0.30000001192092896" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <namedColor name="Primary">
-            <color red="0.64313725490196083" green="0.019607843137254902" blue="0.98039215686274506" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.20392156862745098" green="0.94117647058823528" blue="0.78823529411764703" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>

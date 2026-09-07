@@ -59,6 +59,8 @@ final class FMXAdultViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        FMXTheme.style(navigationItem: self.navigationItem)
+        FMXTheme.style(tableView: self.tableView)
         self.tableView.rowHeight = UITableView.automaticDimension
         self.tableView.estimatedRowHeight = 60
 
@@ -185,20 +187,26 @@ final class FMXAdultViewController: UITableViewController {
         return self.rows(in: section).count
     }
 
-    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+    override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        let title: String
         switch Section(rawValue: section) {
-        case .theSwitch: return "The switch"
-        case .setUp: return "How to set it up"
-        case .trouble: return "If something looks wrong"
+        case .theSwitch: title = "The switch"
+        case .setUp: title = "How to set it up"
+        case .trouble: title = "If something looks wrong"
         case nil: return nil
         }
+        return FMXSectionHeader(title: title)
+    }
+
+    override func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return FMXSectionHeader.height
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch Section(rawValue: section) {
         case .theSwitch:
             if self.store.isBlocked(self.key) {
-                return "Green is blocked, red is allowed. The switch does not block anything by itself: the setup below is the block. The switch is what makes you wait before you undo it."
+                return "The switch does not block anything by itself: the setup below is the block. The switch is what makes you wait before you undo it."
             }
             return "Allowed. Nothing on the phone changed when you did that. To take the block off for real, undo the setup below: set Web Content back to Unrestricted, and remove the profile."
 
@@ -208,6 +216,16 @@ final class FMXAdultViewController: UITableViewController {
         case .trouble, nil:
             return nil
         }
+    }
+
+    override func tableView(_ tableView: UITableView, willDisplayFooterView view: UIView, forSection section: Int) {
+        guard let footer = view as? UITableViewHeaderFooterView else { return }
+        var configuration = footer.defaultContentConfiguration()
+        configuration.text = self.tableView(tableView, titleForFooterInSection: section)
+        configuration.textProperties.font = .systemFont(ofSize: 12.5, weight: .regular)
+        configuration.textProperties.color = FMXTheme.faint
+        configuration.textProperties.numberOfLines = 0
+        footer.contentConfiguration = configuration
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -238,16 +256,16 @@ final class FMXAdultViewController: UITableViewController {
             return cell
 
         case .openSettings:
-            return FMXActionCell(title: "Open Settings")
+            return FMXActionCell(title: "Open Settings", symbol: "gearshape")
 
         case .installProfile:
-            return FMXActionCell(title: "Install the private DNS")
+            return FMXActionCell(title: "Install the private DNS", symbol: "arrow.down.circle")
 
         case .saveProfile:
-            return FMXActionCell(title: "Save the file instead")
+            return FMXActionCell(title: "Save the file instead", symbol: "square.and.arrow.up")
 
         case .checkDNS:
-            return FMXActionCell(title: "Check the private DNS")
+            return FMXActionCell(title: "Check the private DNS", symbol: "checkmark.shield")
 
         case .tick:
             return FMXTickCell(title: "I've done all this", ticked: UserDefaults.standard.fmxAdultDone)
@@ -343,39 +361,50 @@ final class FMXAdultViewController: UITableViewController {
 // MARK: - the rows this screen adds
 
 // a numbered instruction, or without a number an aside in grey
-private final class FMXStepCell: UITableViewCell {
+private final class FMXStepCell: FMXCell {
     private let numberLabel = UILabel()
+    private let numberBox = UIView()
     private let textView = UILabel()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         self.selectionStyle = .none
 
-        self.numberLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
-        self.numberLabel.textColor = .altPrimary
-        self.numberLabel.textAlignment = .center
-        self.numberLabel.setContentHuggingPriority(.required, for: .horizontal)
-        self.numberLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        self.numberBox.backgroundColor = FMXTheme.teal.withAlphaComponent(0.14)
+        self.numberBox.layer.cornerRadius = 8
+        self.numberBox.setContentHuggingPriority(.required, for: .horizontal)
 
-        self.textView.font = .preferredFont(forTextStyle: .subheadline)
-        self.textView.textColor = .label
+        self.numberLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .bold)
+        self.numberLabel.textColor = FMXTheme.accentText
+        self.numberLabel.textAlignment = .center
+
+        self.textView.font = .systemFont(ofSize: 15, weight: .regular)
+        self.textView.textColor = FMXTheme.text
         self.textView.numberOfLines = 0
 
-        for view in [self.numberLabel, self.textView] {
+        self.numberLabel.translatesAutoresizingMaskIntoConstraints = false
+        self.numberBox.addSubview(self.numberLabel)
+
+        for view in [self.numberBox, self.textView] {
             view.translatesAutoresizingMaskIntoConstraints = false
             self.contentView.addSubview(view)
         }
 
         let margins = self.contentView.layoutMarginsGuide
         NSLayoutConstraint.activate([
-            self.numberLabel.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
-            self.numberLabel.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 11),
-            self.numberLabel.widthAnchor.constraint(equalToConstant: 22),
+            self.numberLabel.leadingAnchor.constraint(equalTo: self.numberBox.leadingAnchor),
+            self.numberLabel.trailingAnchor.constraint(equalTo: self.numberBox.trailingAnchor),
+            self.numberLabel.centerYAnchor.constraint(equalTo: self.numberBox.centerYAnchor),
 
-            self.textView.leadingAnchor.constraint(equalTo: self.numberLabel.trailingAnchor, constant: 8),
+            self.numberBox.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.numberBox.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 13),
+            self.numberBox.widthAnchor.constraint(equalToConstant: 24),
+            self.numberBox.heightAnchor.constraint(equalToConstant: 24),
+
+            self.textView.leadingAnchor.constraint(equalTo: self.numberBox.trailingAnchor, constant: 10),
             self.textView.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
-            self.textView.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 11),
-            self.textView.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -11),
+            self.textView.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 14),
+            self.textView.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -14),
         ])
     }
 
@@ -384,32 +413,59 @@ private final class FMXStepCell: UITableViewCell {
     // no number means an aside rather than a step: the text keeps the same left edge as the
     // steps above it, so the column still reads as one list.
     func show(number: Int?, text: String) {
-        self.numberLabel.text = number.map { "\($0)." } ?? ""
+        self.numberLabel.text = number.map { "\($0)" } ?? ""
+        self.numberBox.isHidden = (number == nil)
         self.textView.text = text
-        self.textView.textColor = (number == nil) ? UIColor.secondaryLabel : UIColor.label
+        self.textView.textColor = (number == nil) ? FMXTheme.muted : FMXTheme.text
     }
 }
 
-// a row that does something when tapped
-private final class FMXActionCell: UITableViewCell {
+// a row that does something when tapped. the icon is what makes it read as a button rather than
+// as another line of the instructions.
+private final class FMXActionCell: FMXCell {
     private let label = UILabel()
+    private let iconBox = UIView()
+    private let icon = UIImageView()
 
-    init(title: String) {
+    init(title: String, symbol: String) {
         super.init(style: .default, reuseIdentifier: nil)
 
+        self.iconBox.backgroundColor = FMXTheme.teal.withAlphaComponent(0.14)
+        self.iconBox.layer.cornerRadius = 8
+
+        self.icon.image = UIImage(systemName: symbol)
+        self.icon.tintColor = FMXTheme.accentText
+        self.icon.contentMode = .scaleAspectFit
+
         self.label.font = .systemFont(ofSize: 16, weight: .semibold)
-        self.label.textColor = .altPrimary
+        self.label.textColor = FMXTheme.accentText
         self.label.text = title
         self.label.numberOfLines = 0
-        self.label.translatesAutoresizingMaskIntoConstraints = false
-        self.contentView.addSubview(self.label)
+
+        self.icon.translatesAutoresizingMaskIntoConstraints = false
+        self.iconBox.addSubview(self.icon)
+
+        for view in [self.iconBox, self.label] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            self.contentView.addSubview(view)
+        }
 
         let margins = self.contentView.layoutMarginsGuide
         NSLayoutConstraint.activate([
-            self.label.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.icon.centerXAnchor.constraint(equalTo: self.iconBox.centerXAnchor),
+            self.icon.centerYAnchor.constraint(equalTo: self.iconBox.centerYAnchor),
+            self.icon.widthAnchor.constraint(equalToConstant: 15),
+            self.icon.heightAnchor.constraint(equalToConstant: 15),
+
+            self.iconBox.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.iconBox.centerYAnchor.constraint(equalTo: self.contentView.centerYAnchor),
+            self.iconBox.widthAnchor.constraint(equalToConstant: 24),
+            self.iconBox.heightAnchor.constraint(equalToConstant: 24),
+
+            self.label.leadingAnchor.constraint(equalTo: self.iconBox.trailingAnchor, constant: 10),
             self.label.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
-            self.label.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 13),
-            self.label.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -13),
+            self.label.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 14),
+            self.label.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -14),
         ])
     }
 
@@ -417,27 +473,38 @@ private final class FMXActionCell: UITableViewCell {
 }
 
 // the customer's own tick at the end of the list
-private final class FMXTickCell: UITableViewCell {
+private final class FMXTickCell: FMXCell {
     private let label = UILabel()
+    private let box = UIImageView()
 
     init(title: String, ticked: Bool) {
         super.init(style: .default, reuseIdentifier: nil)
 
-        self.label.font = .systemFont(ofSize: 16, weight: .regular)
-        self.label.textColor = ticked ? .secondaryLabel : .label
+        self.box.image = UIImage(systemName: ticked ? "checkmark.circle.fill" : "circle")
+        self.box.tintColor = ticked ? FMXTheme.volt : FMXTheme.faint
+        self.box.contentMode = .scaleAspectFit
+
+        self.label.font = .systemFont(ofSize: 16, weight: ticked ? .semibold : .regular)
+        self.label.textColor = ticked ? FMXTheme.text : FMXTheme.muted
         self.label.text = title
         self.label.numberOfLines = 0
-        self.label.translatesAutoresizingMaskIntoConstraints = false
-        self.contentView.addSubview(self.label)
 
-        self.accessoryType = ticked ? .checkmark : .none
+        for view in [self.box, self.label] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            self.contentView.addSubview(view)
+        }
 
         let margins = self.contentView.layoutMarginsGuide
         NSLayoutConstraint.activate([
-            self.label.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.box.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.box.centerYAnchor.constraint(equalTo: self.contentView.centerYAnchor),
+            self.box.widthAnchor.constraint(equalToConstant: 24),
+            self.box.heightAnchor.constraint(equalToConstant: 24),
+
+            self.label.leadingAnchor.constraint(equalTo: self.box.trailingAnchor, constant: 10),
             self.label.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
-            self.label.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 13),
-            self.label.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -13),
+            self.label.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 14),
+            self.label.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -14),
         ])
     }
 

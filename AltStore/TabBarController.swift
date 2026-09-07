@@ -54,6 +54,8 @@ final class TabBarController: UITabBarController
         super.viewDidLoad()
         debugLog("[TabBarController] viewDidLoad()")
 
+        FMXTheme.style(tabBar: self.tabBar)
+
         guard let storyboardTabs = self.viewControllers, storyboardTabs.count > StoryboardTab.settings.rawValue else { return }
 
         let switchesNavigationController = ForwardingNavigationController(rootViewController: FMXSwitchesViewController())
@@ -62,10 +64,20 @@ final class TabBarController: UITabBarController
         let appsNavigationController = ForwardingNavigationController(rootViewController: self.makeAppsViewController())
         appsNavigationController.tabBarItem = UITabBarItem(title: "Apps", image: UIImage(systemName: "square.grid.2x2"), tag: Tab.apps.rawValue)
 
+        let myAppsTab = storyboardTabs[StoryboardTab.myApps.rawValue]
+        let settingsTab = storyboardTabs[StoryboardTab.settings.rawValue]
+
+        // the two tabs that come from the storyboard still wear the drawings the store this is
+        // forked from used; ours are apple's own symbols, and four tabs in two different families
+        // read as a mistake. asked for by name so a name apple has moved simply leaves the old
+        // drawing in place rather than an empty tab.
+        if let image = UIImage(systemName: "square.stack") { myAppsTab.tabBarItem.image = image }
+        if let image = UIImage(systemName: "gearshape") { settingsTab.tabBarItem.image = image }
+
         self.viewControllers = [switchesNavigationController,
                                 appsNavigationController,
-                                storyboardTabs[StoryboardTab.myApps.rawValue],
-                                storyboardTabs[StoryboardTab.settings.rawValue]]
+                                myAppsTab,
+                                settingsTab]
     }
 
     // the two tiles: SideStore's Browse screen, showing only the built-in source

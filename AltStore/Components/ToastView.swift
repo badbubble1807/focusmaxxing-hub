@@ -43,9 +43,11 @@ class ToastView: RSTToastView
         
         super.init(text: text, detailText: detailedText)
         
+        // focusmaxxing hub: the accent carries dark words, not white ones - it is a bright colour
+        // now, and white on it cannot be read (FMXTheme, --on-ink in the design system)
         self.backgroundColor = .altPrimary
-        self.textLabel.textColor = .white
-        self.detailTextLabel.textColor = .white
+        self.textLabel.textColor = FMXTheme.onInk
+        self.detailTextLabel.textColor = FMXTheme.onInk
         
         self.isAccessibilityElement = true
         
@@ -109,7 +111,8 @@ class ToastView: RSTToastView
     {
         if opensErrorLog, case let configuration = UIImage.SymbolConfiguration(font: self.textLabel.font),
            let icon = UIImage(systemName: "chevron.right.circle", withConfiguration: configuration) {
-            let tintedIcon = icon.withTintColor(.white, renderingMode: .alwaysOriginal)
+            // focusmaxxing hub: the same dark ink the words on the toast wear, for the same reason
+            let tintedIcon = icon.withTintColor(FMXTheme.onInk, renderingMode: .alwaysOriginal)
             let moreIconImageView = UIImageView(image: tintedIcon)
             moreIconImageView.translatesAutoresizingMaskIntoConstraints = false
             self.addSubview(moreIconImageView)

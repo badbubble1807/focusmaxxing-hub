@@ -238,7 +238,7 @@ class MyAppsViewController: UICollectionViewController
             
             self.statusDotView?.removeFromSuperview()
             
-            let titleText = NSLocalizedString("My Apps", comment: "")
+            let titleText = NSLocalizedString("My apps", comment: "")
             let font = UIFont.systemFont(ofSize: 34, weight: .bold)
             let textWidth = titleText.size(withAttributes: [.font: font]).width
             let leftMargin: CGFloat = 20

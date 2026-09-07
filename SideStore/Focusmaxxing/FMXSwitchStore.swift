@@ -6,10 +6,10 @@
 //  a port of mobile/shared/FMXStore.m into the hub. the keys are the same ones the
 //  apps already use ("fmx.block.igfeed" and so on), so the apps can read the result.
 //
-//  a switch is blocked (green) or allowed (red). blocking is instant. unblocking is the
-//  switches screen's job: it makes you sit through the wait first. this store only
-//  records the result, in the hub's own settings and in one small file inside the
-//  shared app-group folder that the custom apps read when they are opened.
+//  a switch is blocked (the volt gradient) or allowed (a plain grey track). blocking is
+//  instant. unblocking is the switches screen's job: it makes you sit through the wait
+//  first. this store only records the result, in the hub's own settings and in one small
+//  file inside the shared app-group folder that the custom apps read when they are opened.
 //
 
 import Foundation

@@ -162,7 +162,7 @@ struct HealthCheckView: View {
                 }
             }
         }
-        .navigationTitle("Health Check")
+        .navigationTitle("Health check")
         #if !os(tvOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif

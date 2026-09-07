@@ -590,7 +590,7 @@ private extension SettingsViewController
         let contentVC = SignOutAlertViewController()
         
         let alertController = UIAlertController(
-            title: NSLocalizedString("Sign Out", comment: ""),
+            title: NSLocalizedString("Sign out", comment: ""),
             message: NSLocalizedString("Are you sure you want to sign out? You will no longer be able to install or refresh apps once you sign out.", comment: ""),
             preferredStyle: .alert
         )
@@ -599,7 +599,7 @@ private extension SettingsViewController
         
         let cancelAction = UIAlertAction(title: NSLocalizedString("Cancel", comment: ""), style: .cancel, handler: nil)
         
-        let signOutAction = UIAlertAction(title: NSLocalizedString("Sign Out", comment: ""), style: .destructive) { _ in
+        let signOutAction = UIAlertAction(title: NSLocalizedString("Sign out", comment: ""), style: .destructive) { _ in
             let keepCert = contentVC.isChecked
             let keepAnisette = contentVC.isKeepAnisetteChecked
             AuthManager.shared.signOut(keepCertificate: keepCert, keepAnisetteData: keepAnisette)
@@ -1101,7 +1101,7 @@ extension SettingsViewController
             switch row
             {
             case .sendFeedback:
-                let alertController = UIAlertController(title: "Send Feedback", message: "Choose a method to send feedback:", preferredStyle: .actionSheet)
+                let alertController = UIAlertController(title: "Send feedback", message: "Choose a method to send feedback:", preferredStyle: .actionSheet)
                 
                 // focusmaxxing hub: feedback goes to our own repository. SideStore's discord and support mail are not ours.
                 alertController.addAction(UIAlertAction(title: "GitHub", style: .default) { _ in
