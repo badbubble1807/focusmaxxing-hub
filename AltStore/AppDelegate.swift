@@ -193,6 +193,13 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                 if isFirstLaunch
                 {
                     AuthManager.shared.signOut()
+
+                    // focusmaxxing hub: signing out empties the keychain, and the certificate the
+                    // computer step handed us goes with it (the owner's phone, 2026-09-08: taken
+                    // in at 00:46:45.048, cleared at 00:46:45.115). the file is still there, so
+                    // take it in again now the emptying is done. without this every customer's
+                    // first launch throws the handover away.
+                    FMXCertificateHandoff.adoptIfPresent()
                 }
             }
         }

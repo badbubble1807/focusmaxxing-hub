@@ -60,7 +60,9 @@ enum FMXCertificateHandoff {
 
     /// Reads the certificate the computer step left behind, if there is one, and makes it the
     /// hub's signing certificate. Safe to call as often as you like: it does nothing when the
-    /// file is not there, and removes the file once it has been taken in.
+    /// file is not there, and deletes the file on the run that finds the certificate already in
+    /// place - not on the run that puts it there, because a first launch empties the keychain a
+    /// moment later and the file is what puts it back.
     @discardableResult
     static func adoptIfPresent() -> Bool {
         let url = FMXCertificateHandoff.fileURL
@@ -99,6 +101,19 @@ enum FMXCertificateHandoff {
 
         let certificate = ALTCertificate(x509: x509, privateKey: privateKeyData)
 
+        // the file is kept until the certificate can be seen to have stuck, and this is where we
+        // see it. a first launch signs the hub out a moment after the certificate goes in, which
+        // empties the keychain and takes the certificate with it (seen on the owner's phone,
+        // 2026-09-08: taken in at 00:46:45.048, cleared at 00:46:45.115), so deleting the file
+        // the moment it is read would throw away the one copy that could put it back.
+        if FMXCertificateHandoff.sameSerial(CertificateManager.shared.activeCertificate?.serialNumber,
+                                            certificate.serialNumber)
+        {
+            debugLog("[FMXCertificateHandoff] the certificate is already in place; the file has done its job")
+            FMXCertificateHandoff.deleteFile()
+            return false
+        }
+
         // it has to be the certificate this copy of the hub was signed with. anything else would
         // make the hub sign apps with one certificate while wearing another, which is exactly the
         // state that puts the resign screen up.
@@ -114,11 +129,11 @@ enum FMXCertificateHandoff {
 
         do {
             try CertificateManager.shared.setActiveCertificate(certificate)
+            // the file stays for now, on purpose: see the note above. the next launch finds the
+            // certificate already in place and deletes it then.
             debugLog("[FMXCertificateHandoff] took in the certificate from the computer step (serial \(certificate.serialNumber), machine '\(certificate.machineName ?? "unnamed")')")
-            FMXCertificateHandoff.deleteFile()
             return true
         } catch {
-            // the file stays, so the next launch tries again
             debugLog("[FMXCertificateHandoff] could not store the certificate: \(error)")
             return false
         }
