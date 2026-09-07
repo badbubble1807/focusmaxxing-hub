@@ -20,6 +20,7 @@
 //
 
 import Foundation
+import Darwin
 
 enum FMXAdultBlock {
     // the switch key. the same word the desktop extension and the desktop app use for this
@@ -111,6 +112,98 @@ enum FMXAdultBlock {
 
     """
 
+    // MARK: checking whether the profile is doing anything
+    //
+    // the hub cannot read the phone's settings, but it can ask a question only a filtered phone
+    // answers differently. cloudflare publishes two names for exactly this, on their own setup
+    // page: nudity.testcategory.com and malware.testcategory.com. the family server answers a name
+    // it refuses with the nowhere address - 0.0.0.0 for the old kind, :: for the new kind - while
+    // every unfiltered server answers with the real address of a cloudflare page.
+    //
+    // nudity.testcategory.com is the one that matters: the malware-only server (1.1.1.2) refuses
+    // the malware name too, but only the family server (1.1.1.3) refuses this one.
+    //
+    // do NOT invent a name here. "nsfw.testcategory.com" is a name people repeat online and it is
+    // not real: anything under testcategory.com that cloudflare has not set up resolves to the real
+    // page, so a check written against it would quietly report "not set up" on a perfectly set up
+    // phone. checked against cloudflare's own documentation and measured against all three of their
+    // servers, 2026-09-07.
+    //
+    // a lookup from inside the app goes through the phone's own resolver, which is what the profile
+    // replaces, so this really is testing the phone and not the app.
+    static let blockedTestHost = "nudity.testcategory.com"
+
+    enum DNSCheck {
+        case filtered      // the phone's lookups are going through the family server
+        case notFiltered   // they are not
+        case noAnswer      // nothing came back: no internet, or the lookup failed
+    }
+
+    // the nowhere addresses. the third is what an ipv6-only mobile network makes of 0.0.0.0.
+    private static let nullAddresses: Set<String> = ["0.0.0.0", "::", "64:ff9b::"]
+
+    // blocking: the caller runs it away from the main thread
+    static func checkFamilyDNSNow() -> DNSCheck {
+        var hints = addrinfo()
+        hints.ai_family = AF_UNSPEC
+        hints.ai_socktype = SOCK_STREAM
+
+        var results: UnsafeMutablePointer<addrinfo>?
+        let status = getaddrinfo(FMXAdultBlock.blockedTestHost, nil, &hints, &results)
+        guard status == 0, results != nil else {
+            debugLog("[FMXAdultBlock] the lookup did not answer (\(status))")
+            return .noAnswer
+        }
+        defer { freeaddrinfo(results) }
+
+        var addresses = [String]()
+        var node = results
+        while let current = node {
+            var text = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            if getnameinfo(current.pointee.ai_addr, current.pointee.ai_addrlen,
+                           &text, socklen_t(NI_MAXHOST), nil, 0, NI_NUMERICHOST) == 0 {
+                addresses.append(String(cString: text))
+            }
+            node = current.pointee.ai_next
+        }
+
+        guard !addresses.isEmpty else { return .noAnswer }
+        let filtered = addresses.allSatisfy { FMXAdultBlock.nullAddresses.contains($0) }
+        debugLog("[FMXAdultBlock] the test name answered \(addresses.joined(separator: ", ")) -> \(filtered ? "filtered" : "not filtered")")
+        return filtered ? .filtered : .notFiltered
+    }
+
+    // the same, off the main thread, answering on it
+    static func checkFamilyDNS(completion: @escaping (DNSCheck) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = FMXAdultBlock.checkFamilyDNSNow()
+            DispatchQueue.main.async { completion(result) }
+        }
+    }
+
+    // MARK: carrying the old ticks over
+    //
+    // up to 1.0.12 this screen had two ticks, one per half ("fmxAdultScreenTimeDone" and
+    // "fmxAdultDNSDone"). the rewrite has one. a phone that already walked the old list keeps
+    // those two values, so without this it would open the new build and be told "Not set up yet"
+    // about a block that is fully set up. run once, as a write: working it out inside the getter
+    // would undo an untick at the next launch.
+    static func migrateOldTicks() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "fmxAdultDone") else { return }
+        let screenTime = defaults.bool(forKey: "fmxAdultScreenTimeDone")
+        let dns = defaults.bool(forKey: "fmxAdultDNSDone")
+        guard screenTime || dns else { return }
+        // both halves or nothing: one tick on its own means the setup was never finished, and the
+        // row must stay grey rather than claim a block that only half exists.
+        if screenTime && dns {
+            defaults.fmxAdultDone = true
+            debugLog("[FMXAdultBlock] carried the two old ticks over")
+        }
+        defaults.removeObject(forKey: "fmxAdultScreenTimeDone")
+        defaults.removeObject(forKey: "fmxAdultDNSDone")
+    }
+
     // a copy of the profile in the phone's temporary folder, for the "save the file" route.
     // ios only offers to install a profile the customer can see: from safari, or by tapping
     // the file in Files. the temporary folder is emptied by ios itself later.
@@ -127,16 +220,11 @@ enum FMXAdultBlock {
 }
 
 extension UserDefaults {
-    // the customer's own note that they walked through the screen time steps. the hub cannot
-    // read screen time, so this is a tick on a list, not a reading of the phone.
-    var fmxAdultScreenTimeDone: Bool {
-        get { self.bool(forKey: "fmxAdultScreenTimeDone") }
-        set { self.set(newValue, forKey: "fmxAdultScreenTimeDone") }
-    }
-
-    // the same for the dns profile. the hub cannot read the installed profiles either.
-    var fmxAdultDNSDone: Bool {
-        get { self.bool(forKey: "fmxAdultDNSDone") }
-        set { self.set(newValue, forKey: "fmxAdultDNSDone") }
+    // the customer's own note that they walked through the setup. the hub cannot read screen time
+    // or the phone's installed profiles, so this is a tick on a list, not a reading of the phone.
+    // until it is ticked the switch row shows grey rather than green, because nothing is blocked yet.
+    var fmxAdultDone: Bool {
+        get { self.bool(forKey: "fmxAdultDone") }
+        set { self.set(newValue, forKey: "fmxAdultDone") }
     }
 }

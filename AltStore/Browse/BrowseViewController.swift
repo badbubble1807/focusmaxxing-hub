@@ -195,13 +195,26 @@ private extension BrowseViewController
             .store(in: &self.cancellables)
     }
     
+    // focusmaxxing hub: the same rule as upstream's StoreApp.visibleAppsPredicate, minus the clause
+    // that hides the store's own app from every list. our app list carries the hub itself so it can
+    // offer its own updates; with upstream's rule the hub's tile was never drawn, and since this
+    // fork does not use the My Apps "Updates" section either, there was no way at all to move the
+    // hub to a new version from inside the app - it had to be fetched by hand in Safari.
+    // only the pinned-source list uses this; every other list keeps upstream's rule.
+    var fmxOwnSourcePredicate: NSPredicate {
+        return NSPredicate(format: "(%K == NO) OR (%K == NO) OR (%K == YES)",
+                           #keyPath(StoreApp.isPledgeRequired),
+                           #keyPath(StoreApp.isHiddenWithoutPledge),
+                           #keyPath(StoreApp.isPledged))
+    }
+
     func makeFetchRequest() -> NSFetchRequest<StoreApp>
     {
         let fetchRequest = StoreApp.fetchRequest() as NSFetchRequest<StoreApp>
         fetchRequest.returnsObjectsAsFaults = false
-        
-        let predicate = StoreApp.visibleAppsPredicate
-        
+
+        let predicate = self.source != nil ? self.fmxOwnSourcePredicate : StoreApp.visibleAppsPredicate
+
         if let source = self.source
         {
             let filterPredicate = NSPredicate(format: "%K == %@", #keyPath(StoreApp._source), source)
@@ -268,6 +281,13 @@ private extension BrowseViewController
             cell.bannerView.iconImageView.image = nil
             cell.bannerView.iconImageView.isIndicatingActivity = true
             
+            // focusmaxxing hub: our own tile is drawn so it can offer its own update (see
+            // fmxOwnSourcePredicate). there is no Open for it - that button would ask iOS to open
+            // the app you are already looking at, and nothing would happen - so the button is
+            // there only when there is an update. set both ways: a reused cell must not keep it
+            // hidden for a different app.
+            cell.bannerView.button.isHidden = (app.bundleIdentifier == StoreApp.altstoreAppID) && !(app.installedApp?.hasUpdate ?? false)
+
             cell.bannerView.button.addTarget(self, action: #selector(BrowseViewController.performAppAction(_:)), for: .primaryActionTriggered)
             cell.bannerView.button.activityIndicatorView.style = .medium
             cell.bannerView.button.activityIndicatorView.color = .white
@@ -567,7 +587,12 @@ private extension BrowseViewController
         guard let indexPath = self.collectionView.indexPathForItem(at: point) else { return }
         
         let app = self.dataSource.item(at: indexPath)
-        
+
+        // focusmaxxing hub: the hub's own tile has no Open - its button is hidden unless there is
+        // an update - so a stray tap must do nothing rather than fall through to install, which
+        // would put the hub on top of itself for no reason.
+        if app.bundleIdentifier == StoreApp.altstoreAppID, !(app.installedApp?.hasUpdate ?? false) { return }
+
         // if let installedApp = app.installedApp, !installedApp.isUpdateAvailable
         if let installedApp = app.installedApp, !installedApp.hasUpdate
         {

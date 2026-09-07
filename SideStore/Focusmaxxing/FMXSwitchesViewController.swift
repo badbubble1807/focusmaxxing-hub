@@ -35,6 +35,8 @@ extension UIColor {
     static let fmxGreen = UIColor(red: 0.20, green: 0.78, blue: 0.45, alpha: 1.0)
     static let fmxRed   = UIColor(red: 0.93, green: 0.33, blue: 0.31, alpha: 1.0)
     static let fmxAmber = UIColor(red: 0.96, green: 0.68, blue: 0.20, alpha: 1.0)
+    // nothing is blocked yet: the adult row before its setup has been walked through
+    static let fmxGrey  = UIColor(red: 0.36, green: 0.38, blue: 0.42, alpha: 1.0)
 }
 
 // MARK: - the row
@@ -99,6 +101,14 @@ final class FMXSwitchCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError("not used") }
 
     @objc private func pillTapped() { self.onTap?() }
+
+    // grey, for a row whose block has not been set up yet. green would be a claim that something
+    // is blocked when nothing is.
+    func showNotSetUp() {
+        self.pill.backgroundColor = .fmxGrey
+        self.pill.setTitle("", for: .normal)
+        self.statusLabel.text = ""
+    }
 
     func show(_ phase: FMXPhase) {
         switch phase {
@@ -204,6 +214,10 @@ final class FMXSwitchesViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        // a phone set up under the older two-tick version keeps its ticks
+        FMXAdultBlock.migrateOldTicks()
+
         self.navigationItem.largeTitleDisplayMode = .always
         self.navigationController?.navigationBar.prefersLargeTitles = true
         self.tableView.rowHeight = UITableView.automaticDimension
@@ -323,7 +337,7 @@ final class FMXSwitchesViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         switch Section(rawValue: section) {
         case .adult:
-            return "This one is not inside an app. Focusmaxxing Hub cannot block a website by itself, so it walks you through the two settings on the phone that can. Tap the row."
+            return "This one is not inside an app. Tap the row: Focusmaxxing Hub cannot block a website by itself, so it walks you through the two settings on the phone that can."
         case .instagram, .youtube:
             let app = section == Section.instagram.rawValue ? FMXApp.instagram : FMXApp.youtube
             return "Green is blocked, red is allowed. Blocking is instant; unblocking makes you wait, and leaving this screen starts the wait over. Changes apply the next time \(app.title) is opened."
@@ -339,11 +353,23 @@ final class FMXSwitchesViewController: UITableViewController {
 
         if section == .adult {
             // the same row as a switch, but the pill only shows the state: tapping anywhere opens
-            // the adult screen, where the pill, the countdown and the two steps live together.
+            // the adult screen, where the pill, the countdown and the setup live together. the
+            // arrow is there because the owner's own test found the row did not look tappable.
             let cell = FMXSwitchCell(style: .default, reuseIdentifier: nil)
             cell.titleLabel.text = "Adult websites"
-            cell.subLabel.text = "Screen Time and a private DNS, set up from here"
-            cell.show(self.store.isBlocked(FMXAdultBlock.switchKey) ? .on : .off)
+            cell.accessoryType = .disclosureIndicator
+            // this row goes somewhere, so it lights up under the finger. the switch rows keep
+            // .none: a tap there flips a pill rather than opening anything.
+            cell.selectionStyle = .default
+            if UserDefaults.standard.fmxAdultDone {
+                cell.subLabel.text = "Screen Time and a private DNS"
+                cell.show(self.store.isBlocked(FMXAdultBlock.switchKey) ? .on : .off)
+            } else {
+                // grey until the setup has been walked through: green here would claim a block
+                // that does not exist yet
+                cell.subLabel.text = "Not set up yet. Tap to set it up."
+                cell.showNotSetUp()
+            }
             cell.onTap = { [weak self] in self?.openAdult() }
             return cell
         }

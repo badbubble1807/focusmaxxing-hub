@@ -4,19 +4,24 @@
 //
 //  the adult-websites screen, opened from the first row of the switches screen.
 //
-//  three parts, top to bottom: the switch itself (the same pill as every other switch, with
-//  the same wait and the same "leaving this screen starts the wait over" rule), then the two
-//  steps that do the actual blocking - apple's screen time restriction, and a dns profile.
-//  see FMXAdultBlock.swift for why the hub cannot do this itself.
+//  the switch at the top, then one plain list of things to do, then the awkward cases at the
+//  bottom. see FMXAdultBlock.swift for why the hub cannot do the blocking itself.
 //
-//  the ticks next to each step are the customer's own notes. the hub has no way to read the
-//  phone's screen time settings or its installed profiles, and the screen says so rather than
-//  pretending to have checked.
+//  written the first way (two named "steps", the caveats mixed into the instructions) it was
+//  tested on the owner's phone 2026-09-07 and it worked, but their words were: "wasn't always
+//  that intuitive, I had to use my brain more", "I have no clue what I'm setting up", "all that
+//  jargon below it I find it hard to understand". so: one numbered list from start to finish, the
+//  jargon cut, and everything that is only true sometimes moved out of the path and into
+//  "If something looks wrong" at the bottom.
 //
-//  the wording of the screen time steps is apple's own, from the iphone user guide for ios 26
-//  ("Content & Privacy Restrictions", then "App Store, Media, Web, & Games", then "Web
-//  Content", then "Limit Adult Websites"). the middle row used to be called "Content
-//  Restrictions"; if apple moves it again, the steps here are what needs updating.
+//  the tick is the customer's own note. the hub has no way to read screen time or the phone's
+//  installed profiles, and the screen says so rather than pretending to have checked. until it is
+//  ticked, the row on the switches screen is grey, not green, because nothing is blocked yet.
+//
+//  the screen time wording is apple's own, from the iphone user guide for ios 26 ("Content &
+//  Privacy Restrictions", then "App Store, Media, Web, & Games", then "Web Content", then "Limit
+//  Adult Websites"). the middle row used to be called "Content Restrictions"; if apple moves it
+//  again, the steps here are what needs updating.
 //
 
 import UIKit
@@ -24,25 +29,26 @@ import UIKit
 final class FMXAdultViewController: UITableViewController {
     private enum Section: Int, CaseIterable {
         case theSwitch
-        case screenTime
-        case dns
+        case setUp
+        case trouble
     }
 
     private enum Row {
         case pill
         case step(String)
-        case note(String)      // an aside; it carries no step number, so the steps stay 1, 2, 3
+        case note(String)      // an aside; it carries no number, so the steps stay 1, 2, 3
         case openSettings
         case installProfile
         case saveProfile
-        case screenTimeTick
-        case dnsTick
+        case checkDNS
+        case tick
     }
 
     private let store = FMXSwitchStore.shared
     private let key = FMXAdultBlock.switchKey
     private var readyAt: Date?     // the countdown, deliberately not persisted
     private var ticker: Timer?
+    private var dnsCheckLine: String?   // what the last check said, shown under its button
 
     init() {
         super.init(style: .insetGrouped)
@@ -96,7 +102,7 @@ final class FMXAdultViewController: UITableViewController {
         switch self.phase {
         case .off:
             self.store.setBlocked(true, key: self.key)
-            self.reloadFooters()
+            self.reloadSwitchSection()
         case .on:
             self.readyAt = Date(timeIntervalSinceNow: TimeInterval(self.store.waitSeconds))
         case .counting:
@@ -104,7 +110,7 @@ final class FMXAdultViewController: UITableViewController {
         case .armed:
             self.readyAt = nil
             self.store.setBlocked(false, key: self.key)
-            self.reloadFooters()
+            self.reloadSwitchSection()
         }
         self.refreshPill()
     }
@@ -117,8 +123,8 @@ final class FMXAdultViewController: UITableViewController {
         cell.show(self.phase)
     }
 
-    // the footer under the switch says something different once it is allowed
-    private func reloadFooters() {
+    // the words under the switch change once it is allowed
+    private func reloadSwitchSection() {
         self.tableView.reloadSections(IndexSet(integer: Section.theSwitch.rawValue), with: .none)
     }
 
@@ -129,30 +135,41 @@ final class FMXAdultViewController: UITableViewController {
         case .theSwitch:
             return [.pill]
 
-        case .screenTime:
-            return [
-                .step("Open Settings, then tap Screen Time."),
+        case .setUp:
+            var rows: [Row] = [
+                .note("Two things block adult sites on an iPhone: a setting Apple built into it, and a file that sends the phone's web lookups through a filtered server. Do both. It takes about five minutes."),
+
+                .openSettings,
+                .step("Tap Open Settings, just above. It lands on this app's own page: tap back until you reach the main Settings list, then scroll down and tap Screen Time."),
                 .step("Tap Content & Privacy Restrictions, and turn it on."),
                 .step("Tap App Store, Media, Web, & Games."),
                 .step("Tap Web Content."),
                 .step("Choose Limit Adult Websites."),
-                .step("Go back to Screen Time, tap Lock Screen Time Settings, and set four digits. Say yes when it offers to set up recovery with your Apple Account: without that, a Screen Time passcode you forget is very hard to get past."),
-                .openSettings,
-                .note("Settings opens on this app's own page. Tap back once to reach the main list, then scroll to Screen Time."),
-                .screenTimeTick,
-            ]
+                .step("Go back to Screen Time and tap Lock Screen Time Settings."),
+                .step("Set four digits. When it offers to set up recovery with your Apple Account, say yes: without that, a passcode you forget is very hard to undo."),
+                .step("Come back here and tap Install the private DNS, just below."),
 
-        case .dns:
-            return [
                 .installProfile,
-                .step("Your browser opens and asks whether to allow a profile. Tap Allow, then Close."),
+                .step("Your browser opens and downloads a file called Focusmaxxing family DNS. If it asks whether to allow it, tap Allow. In some browsers you have to tap the download yourself."),
                 .step("Open Settings. Tap Profile Downloaded, near the top."),
-                .step("Tap Install, type your phone passcode, and tap Install again. Do this within eight minutes, or the phone throws the download away."),
-                .note("The phone shows the profile in red as unsigned, and warns that a DNS server can see and filter what the phone looks up. Both are normal here: the filtering is the point, and the server is Cloudflare's."),
-                .note("If the phone will not take the profile while you are out, that is Apple's Stolen Device Protection. Do this bit at home, or turn it off first in Settings, under Face ID & Passcode."),
+                .step("Tap Install at the top right. Type the passcode you unlock the phone with, not the four digits you just made for Screen Time, then keep tapping Install until the phone says Done. Do this within eight minutes of the download."),
+                .note("The phone shows the profile in red as unsigned, and warns that the server can see what the phone looks up. Both are normal here: the filtering is the point, and the server is Cloudflare's."),
+
+                .checkDNS,
+            ]
+            if let line = self.dnsCheckLine {
+                rows.append(.note(line))
+            }
+            rows.append(.tick)
+            return rows
+
+        case .trouble:
+            return [
                 .saveProfile,
-                .note("Use that if your browser only downloaded the file, or showed you a page of code: browsers other than Safari cannot install a profile. Save the file, open the Files app, and tap it there. The phone offers to install it the same way."),
-                .dnsTick,
+                .note("Use that only if your browser would not download the file. Save it, open the Files app, and tap it there."),
+                .note("If the phone acts as though it has no internet on some Wi-Fi, that network will not carry the filtered lookups. Settings, then General, then VPN, DNS & Device Management, then DNS, then Automatic switches it off. That is also how the block comes off, so it is friction, not a wall."),
+                .note("If the phone will not take the profile while you are away from home, that is Apple's Stolen Device Protection. Do it at home."),
+                .note("A VPN app, or iCloud Private Relay, can route around the filtered server."),
             ]
         }
     }
@@ -171,8 +188,8 @@ final class FMXAdultViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         switch Section(rawValue: section) {
         case .theSwitch: return "The switch"
-        case .screenTime: return "Step 1: Screen Time"
-        case .dns: return "Step 2: a private DNS"
+        case .setUp: return "How to set it up"
+        case .trouble: return "If something looks wrong"
         case nil: return nil
         }
     }
@@ -181,17 +198,14 @@ final class FMXAdultViewController: UITableViewController {
         switch Section(rawValue: section) {
         case .theSwitch:
             if self.store.isBlocked(self.key) {
-                return "Green is blocked, red is allowed. This switch blocks nothing on its own: the two steps below are the block. It is here so that undoing them costs the same wait as every other switch. Blocking is instant; unblocking makes you wait, and leaving this screen starts the wait over."
+                return "Green is blocked, red is allowed. The switch does not block anything by itself: the setup below is the block. The switch is what makes you wait before you undo it."
             }
-            return "Allowed. Nothing on the phone changed when you did that. To really take the block off you have to undo both steps yourself: set Web Content back to Unrestricted in Screen Time, and remove the profile in Settings, under General, then VPN, DNS & Device Management."
+            return "Allowed. Nothing on the phone changed when you did that. To take the block off for real, undo the setup below: set Web Content back to Unrestricted, and remove the profile."
 
-        case .screenTime:
-            return "This is the only block on an iPhone that survives everything else, Focusmaxxing Hub being deleted included. It covers Safari and the other browsers on the phone; it is not a promise about what a particular app shows inside itself.\n\nFocusmaxxing Hub cannot see your Screen Time settings, so the tick is your own note. Apple moves this wording between iOS versions: if a row is not there, take the closest match."
+        case .setUp:
+            return "Focusmaxxing Hub can test the private DNS itself, with the button above. It cannot see your Screen Time settings: Apple does not let an app read those. So the tick is your own note, not a check."
 
-        case .dns:
-            return "This sends the phone's website lookups to Cloudflare's family server, which turns down adult and malware sites. It covers the whole phone, not only the browser, and it keeps working if Focusmaxxing Hub is deleted. A VPN app or iCloud Private Relay can route around it.\n\nSome hotel and office Wi-Fi will not carry encrypted lookups, and the phone then looks as though it has no internet. One switch fixes that, and it is the same switch that takes the block off again: Settings, then General, then VPN, DNS & Device Management, then DNS, then Automatic. So it is friction, not a wall.\n\nFocusmaxxing Hub cannot see whether the profile is installed, so the tick is your own note."
-
-        case nil:
+        case .trouble, nil:
             return nil
         }
     }
@@ -205,14 +219,14 @@ final class FMXAdultViewController: UITableViewController {
         case .pill:
             let cell = FMXSwitchCell(style: .default, reuseIdentifier: nil)
             cell.titleLabel.text = "Adult websites"
-            cell.subLabel.text = "Blocking is instant; unblocking makes you wait"
+            cell.subLabel.text = "Screen Time and a private DNS"
             cell.show(self.phase)
             cell.onTap = { [weak self] in self?.pillTapped() }
             return cell
 
         case .step(let text):
             // the number is the position of this step among the steps of its own section; the
-            // asides in between are not counted, so the numbers a person follows stay 1, 2, 3
+            // asides and buttons in between are not counted, so the list reads 1, 2, 3 throughout
             let number = rows.prefix(indexPath.row + 1).filter { if case .step = $0 { return true } else { return false } }.count
             let cell = FMXStepCell(style: .default, reuseIdentifier: nil)
             cell.show(number: number, text: text)
@@ -232,11 +246,11 @@ final class FMXAdultViewController: UITableViewController {
         case .saveProfile:
             return FMXActionCell(title: "Save the file instead")
 
-        case .screenTimeTick:
-            return FMXTickCell(title: "I've done this on this phone", ticked: UserDefaults.standard.fmxAdultScreenTimeDone)
+        case .checkDNS:
+            return FMXActionCell(title: "Check the private DNS")
 
-        case .dnsTick:
-            return FMXTickCell(title: "I've done this on this phone", ticked: UserDefaults.standard.fmxAdultDNSDone)
+        case .tick:
+            return FMXTickCell(title: "I've done all this", ticked: UserDefaults.standard.fmxAdultDone)
         }
     }
 
@@ -262,12 +276,11 @@ final class FMXAdultViewController: UITableViewController {
         case .saveProfile:
             self.saveProfile(from: tableView.cellForRow(at: indexPath))
 
-        case .screenTimeTick:
-            UserDefaults.standard.fmxAdultScreenTimeDone.toggle()
-            tableView.reloadRows(at: [indexPath], with: .none)
+        case .checkDNS:
+            self.checkDNS()
 
-        case .dnsTick:
-            UserDefaults.standard.fmxAdultDNSDone.toggle()
+        case .tick:
+            UserDefaults.standard.fmxAdultDone.toggle()
             tableView.reloadRows(at: [indexPath], with: .none)
         }
     }
@@ -277,16 +290,40 @@ final class FMXAdultViewController: UITableViewController {
     // since ios 12.2 the hub cannot hand a profile to the phone itself: it has to arrive through
     // the browser, or as a file the customer taps. this opens the link in whichever browser the
     // phone opens links with, and only safari offers to install what comes back - hence the
-    // "save the file instead" row underneath, which works whatever the browser is.
+    // "save the file instead" row at the bottom, which works whatever the browser is.
     private func installProfile() {
         UIApplication.shared.open(FMXLinks.dnsProfileURL) { [weak self] opened in
             guard !opened else { return }
             DispatchQueue.main.async {
                 guard let self else { return }
                 debugLog("[FMXAdult] could not open the profile link")
-                ToastView(text: "Could not open the link", detailText: "Use \"Save the file instead\" below.").show(in: self)
+                ToastView(text: "Could not open the link", detailText: "Use \"Save the file instead\" at the bottom.").show(in: self)
             }
         }
+    }
+
+    // the one half of this the hub can actually check for itself. see FMXAdultBlock: it asks for a
+    // name cloudflare's family server refuses, and looks at what comes back.
+    private func checkDNS() {
+        self.dnsCheckLine = "Checking…"
+        self.reloadSetUpSection()
+
+        FMXAdultBlock.checkFamilyDNS { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .filtered:
+                self.dnsCheckLine = "Working. This phone's lookups are going through the filtered server, so the second half is done. The Screen Time half is not something Focusmaxxing Hub can see."
+            case .notFiltered:
+                self.dnsCheckLine = "Not working yet. If you have only just installed the profile, give it a minute and check again. Otherwise the profile is not installed, or it is switched off in Settings, under General, then VPN, DNS & Device Management, then DNS."
+            case .noAnswer:
+                self.dnsCheckLine = "Could not check. The phone may be offline, or on a network that will not carry the lookup."
+            }
+            self.reloadSetUpSection()
+        }
+    }
+
+    private func reloadSetUpSection() {
+        self.tableView.reloadSections(IndexSet(integer: Section.setUp.rawValue), with: .none)
     }
 
     private func saveProfile(from cell: UITableViewCell?) {
@@ -305,7 +342,7 @@ final class FMXAdultViewController: UITableViewController {
 
 // MARK: - the rows this screen adds
 
-// a numbered instruction
+// a numbered instruction, or without a number an aside in grey
 private final class FMXStepCell: UITableViewCell {
     private let numberLabel = UILabel()
     private let textView = UILabel()
@@ -379,7 +416,7 @@ private final class FMXActionCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError("not used") }
 }
 
-// the customer's own tick next to a step
+// the customer's own tick at the end of the list
 private final class FMXTickCell: UITableViewCell {
     private let label = UILabel()
 
