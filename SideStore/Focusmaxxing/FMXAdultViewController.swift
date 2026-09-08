@@ -55,6 +55,13 @@ final class FMXAdultViewController: UITableViewController {
     private var ticker: Timer?
     private var dnsCheckLine: String?   // what the last check said, shown under its button
 
+    // which rows have already risen into place this visit; a row that is only repainted does not
+    // slide in again
+    private var arrived = Set<IndexPath>()
+
+    // and only while the screen is opening; see the same pair on the switches screen
+    private var entranceUntil = Date.distantPast
+
     init() {
         super.init(style: .insetGrouped)
         self.title = "Block NSFW"
@@ -78,6 +85,8 @@ final class FMXAdultViewController: UITableViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.arrived.removeAll()
+        self.entranceUntil = Date(timeIntervalSinceNow: 0.5)
         self.tableView.reloadData()
         self.ticker = Timer.scheduledTimer(timeInterval: 0.25, target: self, selector: #selector(tick), userInfo: nil, repeats: true)
     }
@@ -232,6 +241,12 @@ final class FMXAdultViewController: UITableViewController {
         footer.contentConfiguration = configuration
     }
 
+    // the rows rise into place one after another the first time they are seen on a visit
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        guard self.arrived.insert(indexPath).inserted, Date() < self.entranceUntil else { return }
+        FMXEntrance.play(on: cell, ordinal: self.arrived.count - 1)
+    }
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let section = Section(rawValue: indexPath.section) else { return UITableViewCell() }
         let rows = self.rows(in: section)
@@ -366,19 +381,17 @@ final class FMXAdultViewController: UITableViewController {
 // a numbered instruction, or without a number an aside in grey
 private final class FMXStepCell: FMXCell {
     private let numberLabel = UILabel()
-    private let numberBox = UIView()
+    private let numberBox = FMXIconChip(corner: 8)
     private let textView = UILabel()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         self.selectionStyle = .none
 
-        self.numberBox.backgroundColor = FMXTheme.teal.withAlphaComponent(0.14)
-        self.numberBox.layer.cornerRadius = 8
         self.numberBox.setContentHuggingPriority(.required, for: .horizontal)
 
         self.numberLabel.font = FMXFont.of(13, .heavy)
-        self.numberLabel.textColor = FMXTheme.accentText
+        self.numberLabel.textColor = FMXTheme.onInk
         self.numberLabel.textAlignment = .center
 
         self.textView.font = FMXFont.of(15, .regular)
@@ -427,17 +440,14 @@ private final class FMXStepCell: FMXCell {
 // as another line of the instructions.
 private final class FMXActionCell: FMXCell {
     private let label = UILabel()
-    private let iconBox = UIView()
+    private let iconBox = FMXIconChip(corner: 8)
     private let icon = UIImageView()
 
     init(title: String, symbol: String) {
         super.init(style: .default, reuseIdentifier: nil)
 
-        self.iconBox.backgroundColor = FMXTheme.teal.withAlphaComponent(0.14)
-        self.iconBox.layer.cornerRadius = 8
-
         self.icon.image = UIImage(systemName: symbol)
-        self.icon.tintColor = FMXTheme.accentText
+        self.icon.tintColor = FMXTheme.onInk
         self.icon.contentMode = .scaleAspectFit
 
         self.label.font = FMXFont.of(16, .bold)

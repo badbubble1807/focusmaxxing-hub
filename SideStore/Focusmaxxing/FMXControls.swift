@@ -165,12 +165,74 @@ final class FMXSwitchView: UIControl {
     }
 }
 
+// MARK: - the chip a row wears at its left
+
+/// a small rounded square of accent with a glyph or a number in it.
+///
+/// this is the shape the owner's other iPhone app puts at the left of every settings row
+/// (`.setting .ic`: a 42px square, a 14px corner, the accent gradient, a white glyph, and the
+/// accent pooled under it) and it is the single most recognisable thing about that app's look. it
+/// was a flat teal wash at 14% here; now it carries the gradient and the light.
+final class FMXIconChip: UIView {
+    private let gradient = FMXGradientView(colors: [FMXTheme.volt, FMXTheme.teal])
+    private let corner: CGFloat
+
+    init(corner: CGFloat = 9) {
+        self.corner = corner
+        super.init(frame: .zero)
+        self.isUserInteractionEnabled = false
+
+        self.gradient.layer.cornerRadius = corner
+        self.gradient.layer.cornerCurve = .continuous
+        self.gradient.layer.masksToBounds = true
+        self.addSubview(self.gradient)
+    }
+
+    required init?(coder: NSCoder) { fatalError("not used") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        self.gradient.frame = self.bounds
+        // the gradient clips its own corners, so the light has to be cast by this view instead
+        FMXTheme.glow(on: self.layer, bounds: self.bounds, radius: self.corner,
+                      colour: FMXTheme.volt, y: 6, blur: 16, spread: 4, opacity: 0.5)
+    }
+}
+
+// MARK: - arriving
+
+/// rows that rise and fade in, one just after the other.
+///
+/// `fadeUp` in the other app's stylesheet: 10 points up and a fade, over about a third of a second,
+/// easing out. it is most of what "designed" means on a list, and it costs nothing.
+enum FMXEntrance {
+    static func play(on view: UIView, ordinal: Int) {
+        guard FMXTheme.animationsWanted else { return }
+
+        view.alpha = 0
+        view.transform = CGAffineTransform(translationX: 0, y: 10)
+
+        UIView.animate(withDuration: 0.34, delay: min(Double(ordinal) * 0.035, 0.28),
+                       options: [.curveEaseOut, .beginFromCurrentState],
+                       animations: {
+            view.alpha = 1
+            view.transform = .identity
+        }, completion: nil)
+    }
+}
+
 // MARK: - the rows
 
 /// every row of ours: a card on the ground, a shade lighter under the finger.
 class FMXCell: UITableViewCell {
     override func updateConfiguration(using state: UICellConfigurationState) {
         super.updateConfiguration(using: state)
+
+        // a press does NOT scale the row, though everything in the other app moves when it is
+        // pressed. it was written and taken out again: these are grouped tables, so a row is one
+        // slice of a single continuous card, and shrinking a slice opens a seam down both sides of
+        // it and shows the ground through the join. the card lifting a shade, below, is the whole
+        // press state - which is what the other two screens of this product do as well.
 
         // the row's own default is the starting point where it can be had: it is the one that
         // knows where this row sits in its group, which is what rounds the top of the first row
@@ -370,10 +432,11 @@ final class FMXPrimaryButton: UIButton {
         self.setTitleColor(FMXTheme.onInk, for: .normal)
         self.titleLabel?.font = FMXFont.of(18, .heavy)
 
-        self.layer.shadowColor = FMXTheme.volt.cgColor
-        self.layer.shadowOffset = CGSize(width: 0, height: 10)
-        self.layer.shadowRadius = 18
-        self.layer.shadowOpacity = 0.32
+        // an inset white hairline along the top of an accent surface is what stops a gradient
+        // reading as a flat sticker: it is in every one of the other app's accent shapes
+        // (`0 0 0 1px rgba(255,255,255,.15) inset`, next to the coloured glow).
+        self.gradient.layer.borderWidth = 1
+        self.gradient.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
@@ -381,11 +444,18 @@ final class FMXPrimaryButton: UIButton {
     override func layoutSubviews() {
         super.layoutSubviews()
         self.gradient.frame = self.bounds
-        self.layer.shadowPath = UIBezierPath(roundedRect: self.bounds, cornerRadius: 18).cgPath
+        FMXTheme.glow(on: self.layer, bounds: self.bounds, radius: 18,
+                      colour: FMXTheme.volt, y: 12, blur: 30, spread: 10, opacity: 0.5)
     }
 
     override var isHighlighted: Bool {
-        didSet { self.alpha = self.isHighlighted ? 0.82 : 1.0 }
+        didSet {
+            let wanted: CGAffineTransform = self.isHighlighted ? CGAffineTransform(scaleX: 0.97, y: 0.97) : .identity
+            guard FMXTheme.animationsWanted else { self.transform = wanted; return }
+            UIView.animate(withDuration: 0.15, delay: 0,
+                           options: [.beginFromCurrentState, .curveEaseOut, .allowUserInteraction],
+                           animations: { self.transform = wanted }, completion: nil)
+        }
     }
 
     override var isEnabled: Bool {

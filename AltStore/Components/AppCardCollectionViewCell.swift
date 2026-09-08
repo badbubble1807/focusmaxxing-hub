@@ -377,7 +377,12 @@ extension AppCardCollectionViewCell
         // Otherwise, cell reuse can mess up some cached values.
         self.bannerView.button.isIndicatingActivity = false
         
-        self.bannerView.tintColor = storeApp.tintColor
+        // focusmaxxing hub: the button on a tile is the product's accent, not the app's own brand
+        // colour. this line used to hand the banner Instagram's pink and YouTube's red out of
+        // apps.json, and because it is set on the banner itself it beat the accent the list had
+        // already put on the cell - which is why the Apps tab was the one place the theme did not
+        // reach. the brand colour is still what the tile's picture is tinted with elsewhere.
+        self.bannerView.tintColor = FMXTheme.volt
         self.bannerView.configure(for: storeApp, showSourceIcon: showSourceIcon)
         
         self.bannerView.subtitleLabel.numberOfLines = 1

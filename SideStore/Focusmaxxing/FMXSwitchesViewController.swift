@@ -42,6 +42,15 @@ final class FMXSwitchesViewController: UITableViewController {
     // finger that is in the middle of a countdown
     private var headers = [Int: FMXSectionHeader]()
 
+    // which rows have already risen into place this visit, so a row that is only being repainted
+    // (the wait row after the slider is let go) does not slide in again under the finger
+    private var arrived = Set<IndexPath>()
+
+    // and only for the moment the screen is opening. a row that comes into view later - because a
+    // finger dragged it there - must appear at once: staggering those would leave them blank under
+    // the finger for a third of a second, which reads as a list that cannot keep up.
+    private var entranceUntil = Date.distantPast
+
     init() {
         super.init(style: .insetGrouped)
         self.title = "Focusmaxxing mobile"
@@ -75,6 +84,8 @@ final class FMXSwitchesViewController: UITableViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.arrived.removeAll()
+        self.entranceUntil = Date(timeIntervalSinceNow: 0.5)
         self.tableView.reloadData()
         self.ticker = Timer.scheduledTimer(timeInterval: 0.25, target: self, selector: #selector(tick), userInfo: nil, repeats: true)
     }
@@ -237,6 +248,12 @@ final class FMXSwitchesViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, willDisplayFooterView view: UIView, forSection section: Int) {
         guard let footer = view as? UITableViewHeaderFooterView else { return }
         self.style(footer: footer, section: section)
+    }
+
+    // the rows rise into place one after another the first time they are seen on a visit
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        guard self.arrived.insert(indexPath).inserted, Date() < self.entranceUntil else { return }
+        FMXEntrance.play(on: cell, ordinal: self.arrived.count - 1)
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {

@@ -47,6 +47,9 @@ class MyAppsViewController: UICollectionViewController
     
     private var prototypeUpdateCell: UpdateCollectionViewCell!
     private var sideloadingProgressView: UIProgressView!
+
+    // the last thing the helper check said, so the dot can be drawn again once the bar is ready
+    private var lastHelperReady: Bool?
     
     // State
     private var isUpdateSectionCollapsed = true
@@ -131,7 +134,11 @@ class MyAppsViewController: UICollectionViewController
         self.sideloadingProgressView.translatesAutoresizingMaskIntoConstraints = false
         self.sideloadingProgressView.progressTintColor = .altPrimary
         self.sideloadingProgressView.progress = 0
-        
+        // focusmaxxing hub: hidden until there is something to show. it goes on the navigation bar,
+        // and that bar now belongs to the Apps tab rather than to this screen alone, so an empty
+        // track was being left drawn along the bottom of it.
+        self.sideloadingProgressView.isHidden = true
+
         if let navigationBar = self.navigationController?.navigationBar
         {
             navigationBar.addSubview(self.sideloadingProgressView)
@@ -146,14 +153,20 @@ class MyAppsViewController: UICollectionViewController
         
         NotificationCenter.default.addObserver(self, selector: #selector(MyAppsViewController.didChangeAppIcon(_:)), name: UIApplication.didChangeAppIconNotification, object: nil)
         
+        // focusmaxxing hub: [weak self], and it matters now. this task listens for ever, so while it
+        // held this screen strongly the screen could never be let go - and its deinit is the only
+        // place the task is cancelled, so it could never be let go either. that was harmless while
+        // this was a tab (one copy, alive for as long as the app), but it is opened and closed like
+        // any other screen since 2026-09-08, and every visit would have left a whole dead copy
+        // behind still answering notifications and still writing the icon badge.
         if minimuxerStatusCheckTask == nil {
-            minimuxerStatusCheckTask = Task {
+            minimuxerStatusCheckTask = Task { [weak self] in
                 let status = await isMinimuxerReady()
-                updateStatusDot(isReady: status.isSuccess)
+                self?.updateStatusDot(isReady: status.isSuccess)
                 // Listen to subsequent updates reactively
                 for await result in minimuxerStatusPublisher.values {
-                    guard !Task.isCancelled else { break }
-                    updateStatusDot(isReady: result.isSuccess)
+                    guard let self, !Task.isCancelled else { break }
+                    self.updateStatusDot(isReady: result.isSuccess)
                 }
             }
         }
@@ -183,9 +196,30 @@ class MyAppsViewController: UICollectionViewController
         
         _viewDidAppear = true
 
+        // focusmaxxing hub: the helper-ready dot hangs off the navigation bar's large title, and
+        // the only thing that draws it is a task started in viewDidLoad - if the bar had not laid
+        // that title out yet, it gave up and never tried again. this screen is pushed rather than a
+        // tab of its own since 2026-09-08, so that race is now the usual case; the last answer is
+        // simply drawn again once the bar is really on screen.
+        if let ready = self.lastHelperReady {
+            self.updateStatusDot(isReady: ready)
+        }
+
         if let pendingURL = self.pendingImportURL {
             self.pendingImportURL = nil
             self.presentImportDialog(for: pendingURL)
+        }
+    }
+
+    override func viewDidDisappear(_ animated: Bool)
+    {
+        super.viewDidDisappear(animated)
+
+        // focusmaxxing hub: the progress bar lives on the navigation bar, and that bar belongs to
+        // the Apps tab now - leaving it there would stack one on the tile list per visit.
+        if self.isMovingFromParent
+        {
+            self.sideloadingProgressView?.removeFromSuperview()
         }
     }
     
@@ -210,6 +244,8 @@ class MyAppsViewController: UICollectionViewController
     {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+
+            self.lastHelperReady = isReady
             
             guard let navigationBar = self.navigationController?.navigationBar else { return }
             
@@ -243,7 +279,10 @@ class MyAppsViewController: UICollectionViewController
             
             self.statusDotView?.removeFromSuperview()
             
-            let titleText = NSLocalizedString("My apps", comment: "")
+            // the screen's own title, whatever it is called: the dot is placed by measuring the
+            // words it has to sit after, so a hard-coded string here lands the dot in the wrong
+            // place the moment the screen is renamed
+            let titleText = self.title ?? NSLocalizedString("Installed", comment: "")
             // this measures the title to put the dot after it, so it has to be the font the bar
             // really uses - FMXTheme sets a large title to Manrope at 28 (FMXTheme.style)
             let font = FMXFont.of(28, .heavy)
@@ -337,6 +376,7 @@ private extension MyAppsViewController
             cell.blurView.layer.masksToBounds = true
             cell.blurView.backgroundColor = FMXTheme.card
             cell.textLabel.textColor = FMXTheme.accentText
+            cell.textLabel.font = FMXFont.of(15, .semibold)
             
             cell.button.addTarget(self, action: #selector(MyAppsViewController.showHiddenUpdatesAlert(_:)), for: .primaryActionTriggered)
             
@@ -1828,7 +1868,9 @@ extension MyAppsViewController
                 
                 if UserDefaults.standard.activeAppsLimit == nil || UserDefaults.standard.isAppLimitDisabled
                 {
-                    headerView.textLabel.text = NSLocalizedString("Installed", comment: "")
+                    // focusmaxxing hub: "Active" either way. the screen itself is called Installed
+                    // now, and a heading repeating the title reads as a mistake.
+                    headerView.textLabel.text = NSLocalizedString("Active", comment: "")
                 }
                 else
                 {
@@ -2244,6 +2286,13 @@ extension MyAppsViewController: UICollectionViewDelegateFlowLayout
         switch section
         {
         case .noUpdates:
+            // focusmaxxing hub: this card said "No updates available" every single time, because
+            // the column it counts (InstalledApp.hasUpdate) is never written in this fork - updates
+            // are offered on the Apps tab from the computed property instead. So the loudest thing
+            // on the screen was a card that could not ever say anything else. It is kept, and kept
+            // in the count so nothing that inserts or removes it can disagree with the list, but it
+            // takes up no room unless it has something real to say.
+            guard !self.unsupportedUpdates.isEmpty else { return .zero }
             let size = CGSize(width: collectionView.bounds.width, height: 44)
             return size
             
@@ -2294,21 +2343,15 @@ extension MyAppsViewController: UICollectionViewDelegateFlowLayout
         
         func appIDsFooterSize() -> CGSize
         {
-            guard let _ = DatabaseManager.shared.activeTeam() else { return .zero }
-            
-            // let indexPath = IndexPath(row: 0, section: section.rawValue)
-            // let footerView = self.collectionView(collectionView, viewForSupplementaryElementOfKind: UICollectionView.elementKindSectionFooter, at: indexPath) as! InstalledAppsCollectionFooterView
-                        
-            // let size = footerView.systemLayoutSizeFitting(CGSize(width: collectionView.frame.width, height: UIView.layoutFittingExpandedSize.height),
-            //                                               withHorizontalFittingPriority: .required,
-            //                                               verticalFittingPriority: .fittingSizeLevel)
-            // return size
-
-            // NOTE: double dequeue of cell has been discontinued
-            // TODO: Using harcoded value until this is fixed
-            return CGSize(width: collectionView.bounds.width, height: 60.5)
+            // focusmaxxing hub: no App IDs footer. "4 App IDs Remaining" and "View App IDs" are
+            // Apple-developer words for Apple's limit of ten registered identifiers at a time -
+            // nothing a customer with two apps can act on, and the screen the button opens is the
+            // same kind of developer screen this fork already hides a dozen of (Settings keeps
+            // storage explorer, certificates, anisette and the rest out of sight the same way).
+            // Reinstalling an app reuses its own identifier, so the limit is not reachable here.
+            return .zero
         }
-        
+
         switch section
         {
         case .noUpdates: return .zero
@@ -2328,6 +2371,8 @@ extension MyAppsViewController: UICollectionViewDelegateFlowLayout
         switch section
         {
         case .noUpdates where self.updatesDataSource.itemCount != 0: return .zero
+        // and no gap either, when the card above has nothing to say
+        case .noUpdates where self.unsupportedUpdates.isEmpty: return .zero
         case .updates where self.updatesDataSource.itemCount == 0: return .zero
         default: return UIEdgeInsets(top: 12, left: 0, bottom: 20, right: 0)
         }

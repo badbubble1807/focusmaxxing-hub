@@ -175,8 +175,13 @@ class BrowseViewController: UICollectionViewController
     override func viewWillAppear(_ animated: Bool)
     {
         super.viewWillAppear(animated)
-        
+
         self.update()
+
+        // a day may have passed while this tab was not the one on screen. only the countdown is
+        // redrawn, never the whole list: reloading would throw away the progress bar of an install
+        // that is still running behind it.
+        self.fmxRefreshDaysLeft()
     }
     
     override func viewDidDisappear(_ animated: Bool) 
@@ -308,6 +313,9 @@ private extension BrowseViewController
             // YouTube red) made this tab read as three unrelated shops.
             let tintColor = FMXTheme.volt
             cell.tintColor = tintColor
+
+            // and how long this one has left, which used to be on a tab of its own
+            self.fmxShowDaysLeft(on: cell, for: app)
         }
         dataSource.prefetchHandler = { (storeApp, indexPath, completionHandler) in
             let iconURL = storeApp.iconURL
@@ -541,8 +549,13 @@ private extension BrowseViewController
     
     func prepareAppSorting()
     {
-        // focusmaxxing hub: two apps need no sort menu
-        if self.isFocusmaxxingList { return }
+        // focusmaxxing hub: two apps need no sort menu. what the bar carries instead is the two
+        // things the old "My apps" tab was the only home for.
+        if self.isFocusmaxxingList
+        {
+            self.prepareFocusmaxxingBar()
+            return
+        }
 
         if self.preferredAppSorting == .default && self.source == nil
         {
@@ -739,3 +752,167 @@ extension BrowseViewController: UIViewControllerPreviewingDelegate
     }
 }
 
+
+// MARK: - focusmaxxing: what the "My apps" tab used to be the only home for
+//
+// Until 2026-09-08 the hub had two tabs of apps: this one, and "My apps". They showed the same two
+// apps and the owner could not tell them apart. My apps had three things this one did not - how
+// many days each app has left before it stops opening, the button that renews them all, and the
+// screen where an app can be turned off, removed or backed up - so those three came here, and that
+// tab went. The screen itself was not rewritten: it is one push away (FMXInstalledApps).
+//
+// The countdown is the point of all this. It is the only warning a customer gets that a block is
+// about to stop working, and the reminder notification asks them to do something about it, so it
+// has to be on the tab they open rather than one tab further in.
+
+extension BrowseViewController
+{
+    /// the two buttons the Apps tab carries: renew everything, and the list of what is installed.
+    func prepareFocusmaxxingBar()
+    {
+        #if !os(tvOS)
+        let refresh = UIBarButtonItem(title: NSLocalizedString("Refresh all", comment: ""),
+                                      style: .plain, target: self,
+                                      action: #selector(BrowseViewController.fmxRefreshAll(_:)))
+        refresh.setTitleTextAttributes([.font: FMXFont.of(15, .bold)], for: .normal)
+        refresh.setTitleTextAttributes([.font: FMXFont.of(15, .bold)], for: .highlighted)
+        refresh.setTitleTextAttributes([.font: FMXFont.of(15, .bold)], for: .disabled)
+        self.navigationItem.rightBarButtonItem = refresh
+
+        let installed = UIBarButtonItem(image: UIImage(systemName: "square.stack"),
+                                        style: .plain, target: self,
+                                        action: #selector(BrowseViewController.fmxShowInstalled(_:)))
+        installed.accessibilityLabel = FMXInstalledApps.title
+        self.navigationItem.leftBarButtonItem = installed
+        #endif
+    }
+
+    @objc func fmxShowInstalled(_ sender: Any)
+    {
+        FMXInstalledApps.show(from: self)
+    }
+
+    /// renew every installed app, the way the old tab's header button did.
+    @objc func fmxRefreshAll(_ sender: UIBarButtonItem)
+    {
+        let installedApps = InstalledApp.fetchAppsForRefreshingAll(in: DatabaseManager.shared.viewContext)
+        guard !installedApps.isEmpty else {
+            ToastView(error: OperationError.noInstalledApps).show(in: self)
+            return
+        }
+
+        sender.isEnabled = false
+
+        let group = AppManager.shared.refresh(installedApps, presentingViewController: self, group: nil)
+        group.completionHandler = { [weak self] results in
+            DispatchQueue.main.async {
+                sender.isEnabled = true
+                guard let self else { return }
+
+                // a renewal moves every expiry a week out, so the countdowns on screen are stale
+                self.fmxRefreshDaysLeft()
+
+                let failures = results.compactMapValues { result -> Error? in
+                    switch result
+                    {
+                    case .failure(let error) where error is CancellationError: return nil
+                    case .failure(let error): return error
+                    case .success: return nil
+                    }
+                }
+
+                guard !failures.isEmpty else { return }
+
+                if let failure = failures.first, results.count == 1
+                {
+                    ToastView(error: failure.value).show(in: self)
+                    return
+                }
+
+                let text = (failures.count == 1)
+                    ? NSLocalizedString("Failed to refresh 1 app.", comment: "")
+                    : String(format: NSLocalizedString("Failed to refresh %@ apps.", comment: ""), NSNumber(value: failures.count))
+
+                let error = failures.first?.value as NSError?
+                let detail = error?.localizedFailure ?? error?.localizedFailureReason ?? error?.localizedDescription
+
+                let toastView = ToastView(text: text, detailText: detail, opensLog: true)
+                toastView.preferredDuration = 4.0
+                toastView.show(in: self)
+            }
+        }
+    }
+
+    /// how long this app has left, written above its button.
+    ///
+    /// the button itself is deliberately left alone. on the old tab the countdown WAS the button,
+    /// which is why tapping "6 DAYS" renewed the app; here the button stays Install / Open / Update
+    /// and the countdown is the small line over it, so nothing a customer taps changed meaning.
+    /// the colours are the four the product already uses for this (they are what
+    /// `Refresh*.colorset` were pointed at during the design pass: volt, ember, ember deep, danger).
+    func fmxShowDaysLeft(on cell: AppCardCollectionViewCell, for app: StoreApp)
+    {
+        guard let label = cell.bannerView.buttonLabel else { return }
+
+        // the hub's own tile hides its button unless there is an update, and this label is
+        // positioned against that button - drawn over a collapsed one it is cut in half by the edge
+        // of the card. the hub is also the one app this countdown is not needed for: it renews
+        // itself, and the store it is forked from books its own warnings about it, which is why
+        // FMXReminder leaves it out too.
+        guard self.isFocusmaxxingList,
+              !cell.bannerView.button.isHidden,
+              let installedApp = app.installedApp, installedApp.isActive
+        else {
+            label.isHidden = true
+            return
+        }
+
+        label.font = FMXFont.of(10, .heavy)
+        label.isHidden = false
+
+        if installedApp.certificateStatus == .revoked
+        {
+            label.text = NSLocalizedString("Expired", comment: "").uppercased()
+            label.textColor = .refreshRed
+            return
+        }
+
+        let now = Date()
+        guard now < installedApp.expirationDate, installedApp.certificateStatus != .expired else {
+            label.text = NSLocalizedString("Expired", comment: "").uppercased()
+            label.textColor = .refreshRed
+            return
+        }
+
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        formatter.allowedUnits = [.day, .hour, .minute]
+        formatter.maximumUnitCount = 1
+
+        label.text = (formatter.string(from: now, to: installedApp.expirationDate) ?? "").uppercased()
+
+        let days = Calendar.current.dateComponents([.day], from: now, to: installedApp.expirationDate).day ?? 0
+        switch days
+        {
+        case 6...: label.textColor = .refreshGreen
+        case 4...5: label.textColor = .refreshYellow
+        case 2...3: label.textColor = .refreshOrange
+        default: label.textColor = .refreshRed
+        }
+    }
+
+    /// redraw only the countdowns, leaving every button and every progress bar where it is.
+    func fmxRefreshDaysLeft()
+    {
+        guard self.isFocusmaxxingList else { return }
+
+        for cell in self.collectionView.visibleCells
+        {
+            guard let cell = cell as? AppCardCollectionViewCell,
+                  let indexPath = self.collectionView.indexPath(for: cell)
+            else { continue }
+
+            self.fmxShowDaysLeft(on: cell, for: self.dataSource.item(at: indexPath))
+        }
+    }
+}

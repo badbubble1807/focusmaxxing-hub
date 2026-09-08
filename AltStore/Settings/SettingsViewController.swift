@@ -238,13 +238,13 @@ final class SettingsViewController: UITableViewController
         
         self.update()
         
-        #if !os(tvOS)
-        if let appearance = self.tabBarController?.tabBar.standardAppearance
-        {
-            appearance.stackedLayoutAppearance.normal.badgeBackgroundColor = .altPrimary
-            self.navigationController?.tabBarItem.scrollEdgeAppearance = appearance
-        }
-        #endif
+        // focusmaxxing hub: this used to reach into the tab bar's own appearance, colour a badge on
+        // it, and then pin that same object to the Settings tab as its scroll-edge appearance. It
+        // was doing two unwanted things: this fork has no tab badge left to colour, and pinning a
+        // snapshot to one item meant that item stopped following FMXTheme when the bar was restyled
+        // - which is how the Settings tab ended up able to draw its selected word in a colour the
+        // accent pill behind it made unreadable. The bar's own appearance, set once in
+        // FMXTheme.style(tabBar:), is the only one now.
         
         // We can only configure the contentMode for a button's background image from Interface Builder.
         // This works, but it means buttons don't visually highlight because there's no foreground image.
@@ -1058,12 +1058,13 @@ extension SettingsViewController
                 let vc = UIHostingController(rootView: healthCheckView)
                 
                 #if !os(tvOS)
-                let appearance = UINavigationBarAppearance()
-                appearance.configureWithDefaultBackground()
-                vc.navigationItem.scrollEdgeAppearance = appearance
-                vc.navigationItem.standardAppearance = appearance
+                // focusmaxxing hub: the bar over the health check was built here with the system's
+                // own default background, which is why that one screen kept a grey iOS header while
+                // every other bar in the app is ours. the screen underneath it is SwiftUI and is
+                // still the system's; the bar over it no longer is.
+                FMXTheme.style(navigationItem: vc.navigationItem)
                 #endif
-                
+
                 navigationController?.pushViewController(vc, animated: true)
                 
             case .errorLog: break

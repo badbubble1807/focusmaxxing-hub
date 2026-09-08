@@ -4,7 +4,7 @@
   "identifier": "com.SideStore.SideStore",
   "subtitle": "The two custom apps and the hub that keeps them working.",
   "description": "Focusmaxxing Hub installs Custom blocked Instagram and Custom blocked YouTube, renews them in the background, and holds the switches that block the distracting parts of each app.",
-  "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/AltStore/Resources/Icons.xcassets/AppIcon.appiconset/1024.png",
+  "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/source/icons/hub.png",
   "website": "https://github.com/badbubble1807/focusmaxxing-hub",
   "tintColor": "0A8F78",
   "apps": [
@@ -14,7 +14,7 @@
       "developerName": "focusmaxxing",
       "subtitle": "Keeps your custom apps working.",
       "localizedDescription": "Focusmaxxing Hub keeps Custom blocked Instagram and YouTube installed and holds their switches. The cloud build updates this entry on every build.",
-      "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/AltStore/Resources/Icons.xcassets/AppIcon.appiconset/1024.png",
+      "iconURL": "https://raw.githubusercontent.com/badbubble1807/focusmaxxing-hub/main/source/icons/hub.png",
       "tintColor": "0A8F78",
       "category": "utilities",
       "screenshots": [],
