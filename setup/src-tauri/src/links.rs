@@ -12,7 +12,7 @@ pub const HUB_IPA_URL: &str =
 pub const HUB_BUNDLE_ID: &str = "com.SideStore.SideStore";
 
 /// the name the phone reports for the hub (CFBundleDisplayName in the hub's Info.plist)
-pub const HUB_DISPLAY_NAME: &str = "Focusmaxxing Hub";
+pub const HUB_DISPLAY_NAME: &str = "Focusmaxxing";
 
 /// where the hub expects its pairing file, inside its Documents folder
 pub const HUB_PAIRING_FILE: &str = "ALTPairingFile.mobiledevicepairing";

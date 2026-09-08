@@ -86,7 +86,7 @@ enum FMXReminder {
         } else {
             content.title = days == 1 ? "\(name) stops opening in 1 day" : "\(name) stops opening in \(days) days"
         }
-        content.body = "Focusmaxxing Hub could not renew it by itself. Open the Hub with the helper on and it will."
+        content.body = "Focusmaxxing could not renew it by itself. Open it with the helper on and it will."
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(fireDate.timeIntervalSince(now), 1), repeats: false)

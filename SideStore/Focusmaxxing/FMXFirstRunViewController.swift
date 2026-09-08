@@ -37,12 +37,12 @@ final class FMXFirstRunViewController: UIViewController {
     // the five steps, word for word from the checklist
     private let steps: [Step] = [
         Step(sentence: "On your computer, open Focusmaxxing Setup and plug in your phone.", note: nil),
-        Step(sentence: "Sign in with your Apple ID. Focusmaxxing Hub appears on your phone.", note: nil),
-        Step(sentence: "On your phone, open Focusmaxxing Hub and sign in with the same Apple ID.", note: nil),
+        Step(sentence: "Sign in with your Apple ID. Focusmaxxing appears on your phone.", note: nil),
+        Step(sentence: "On your phone, open Focusmaxxing and sign in with the same Apple ID.", note: nil),
         Step(sentence: "Tap \"Get the helper\". The App Store opens; tap Get, come back, tap Allow.",
-             note: "You'll see a VPN icon now and then. That's the helper connecting the Hub to your phone; nothing leaves your phone."),
+             note: "You'll see a VPN icon now and then. That's the helper connecting Focusmaxxing to your phone; nothing leaves your phone."),
         Step(sentence: "Tap Install on Instagram and YouTube. Done.",
-             note: "Focusmaxxing Hub keeps your apps working. If an app ever won't open, open the Hub."),
+             note: "Focusmaxxing keeps your apps working. If an app ever won't open, open it."),
     ]
 
     private var index = 0
@@ -208,7 +208,7 @@ final class FMXFirstRunViewController: UIViewController {
 
         switch index {
         case 0, 1:
-            self.doneLabel.text = "Done. Focusmaxxing Hub is on your phone, so this step is behind you."
+            self.doneLabel.text = "Done. Focusmaxxing is on your phone, so this step is behind you."
             self.doneRow.isHidden = false
             self.button.setTitle("Next", for: .normal)
 

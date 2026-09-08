@@ -99,6 +99,12 @@ final class TabBarController: UITabBarController
 
         // ours goes on last so it is above the bar's own background and below the drawings
         self.tabBar.addSubview(self.tabPill)
+
+        // the pill casts a soft glow that reaches a little past its own edges; the bar must not clip
+        // it (a clipped shadow is what makes the selected tab's light look chopped). UITabBar does
+        // not clip by default, but this says so out loud so a future change cannot quietly bring the
+        // chop back.
+        self.tabBar.clipsToBounds = false
         self.delegate = self
     }
 

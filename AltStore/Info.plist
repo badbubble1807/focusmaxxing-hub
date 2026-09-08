@@ -17,7 +17,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Focusmaxxing Hub</string>
+	<string>Focusmaxxing</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

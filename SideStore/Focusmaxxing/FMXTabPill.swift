@@ -50,7 +50,14 @@ final class FMXTabPill: UIView {
         // the glow goes on this view's own layer rather than on the gradient: the gradient clips
         // its corners, and a layer that clips cannot cast a shadow outside itself. the same note as
         // the switch in FMXControls.swift.
+        //
+        // the y offset is a whisper UP (-2), not down. everywhere else in the product the pooled
+        // light sits below its shape, because those shapes have room below them. this one does not:
+        // it is at the very bottom of the screen, a hair above the home indicator, so a downward
+        // offset (this was y:10 once) pushes the light off the bottom edge, where it is clipped and
+        // reads as a blob chopped off under the leftmost tab - the one the app opens on. pooling it
+        // up instead keeps the whole glow inside the bar, over the ink, where there is room for it.
         FMXTheme.glow(on: self.layer, bounds: self.bounds, radius: corner,
-                      colour: FMXTheme.volt, y: 10, blur: 26, spread: 8, opacity: 0.55)
+                      colour: FMXTheme.volt, y: -2, blur: 26, spread: 8, opacity: 0.55)
     }
 }

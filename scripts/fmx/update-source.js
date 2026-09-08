@@ -20,7 +20,7 @@ const date = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 const hub = source.apps.find(app => app.bundleIdentifier === "com.SideStore.SideStore");
 if (!hub) { console.error("no hub entry in apps.json"); process.exit(1); }
 
-const entry = { version, date, localizedDescription: "Focusmaxxing Hub build " + version + ".", downloadURL, size: bytes.length, sha256, minOSVersion: "15.0" };
+const entry = { version, date, localizedDescription: "Focusmaxxing build " + version + ".", downloadURL, size: bytes.length, sha256, minOSVersion: "15.0" };
 hub.versions = [entry].concat((hub.versions || []).filter(v => v.version !== version)).slice(0, 5);
 
 fs.writeFileSync(file, JSON.stringify(source, null, 2) + "\n");

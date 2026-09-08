@@ -462,3 +462,156 @@ final class FMXPrimaryButton: UIButton {
         didSet { self.alpha = self.isEnabled ? 1.0 : 0.45 }
     }
 }
+
+// MARK: - the rows a guided screen is built from
+
+// these three began life private inside FMXAdultViewController. the full-block screen
+// (FMXFullBlockViewController) walks the customer through Screen Time the same way the NSFW screen
+// walks them through Screen Time and the DNS profile, so the three rows both screens are made of
+// live here now, shared, the way FMXPhase and FMXSwitchCell were lifted out for the NSFW screen.
+
+// a numbered instruction, or without a number an aside in grey
+final class FMXStepCell: FMXCell {
+    private let numberLabel = UILabel()
+    private let numberBox = FMXIconChip(corner: 8)
+    private let textView = UILabel()
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        self.selectionStyle = .none
+
+        self.numberBox.setContentHuggingPriority(.required, for: .horizontal)
+
+        self.numberLabel.font = FMXFont.of(13, .heavy)
+        self.numberLabel.textColor = FMXTheme.onInk
+        self.numberLabel.textAlignment = .center
+
+        self.textView.font = FMXFont.of(15, .regular)
+        self.textView.textColor = FMXTheme.text
+        self.textView.numberOfLines = 0
+
+        self.numberLabel.translatesAutoresizingMaskIntoConstraints = false
+        self.numberBox.addSubview(self.numberLabel)
+
+        for view in [self.numberBox, self.textView] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            self.contentView.addSubview(view)
+        }
+
+        let margins = self.contentView.layoutMarginsGuide
+        NSLayoutConstraint.activate([
+            self.numberLabel.leadingAnchor.constraint(equalTo: self.numberBox.leadingAnchor),
+            self.numberLabel.trailingAnchor.constraint(equalTo: self.numberBox.trailingAnchor),
+            self.numberLabel.centerYAnchor.constraint(equalTo: self.numberBox.centerYAnchor),
+
+            self.numberBox.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.numberBox.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 13),
+            self.numberBox.widthAnchor.constraint(equalToConstant: 24),
+            self.numberBox.heightAnchor.constraint(equalToConstant: 24),
+
+            self.textView.leadingAnchor.constraint(equalTo: self.numberBox.trailingAnchor, constant: 10),
+            self.textView.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
+            self.textView.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 14),
+            self.textView.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -14),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("not used") }
+
+    // no number means an aside rather than a step: the text keeps the same left edge as the
+    // steps above it, so the column still reads as one list.
+    func show(number: Int?, text: String) {
+        self.numberLabel.text = number.map { "\($0)" } ?? ""
+        self.numberBox.isHidden = (number == nil)
+        self.textView.text = text
+        self.textView.textColor = (number == nil) ? FMXTheme.muted : FMXTheme.text
+    }
+}
+
+// a row that does something when tapped. the icon is what makes it read as a button rather than
+// as another line of the instructions.
+final class FMXActionCell: FMXCell {
+    private let label = UILabel()
+    private let iconBox = FMXIconChip(corner: 8)
+    private let icon = UIImageView()
+
+    init(title: String, symbol: String) {
+        super.init(style: .default, reuseIdentifier: nil)
+
+        self.icon.image = UIImage(systemName: symbol)
+        self.icon.tintColor = FMXTheme.onInk
+        self.icon.contentMode = .scaleAspectFit
+
+        self.label.font = FMXFont.of(16, .bold)
+        self.label.textColor = FMXTheme.accentText
+        self.label.text = title
+        self.label.numberOfLines = 0
+
+        self.icon.translatesAutoresizingMaskIntoConstraints = false
+        self.iconBox.addSubview(self.icon)
+
+        for view in [self.iconBox, self.label] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            self.contentView.addSubview(view)
+        }
+
+        let margins = self.contentView.layoutMarginsGuide
+        NSLayoutConstraint.activate([
+            self.icon.centerXAnchor.constraint(equalTo: self.iconBox.centerXAnchor),
+            self.icon.centerYAnchor.constraint(equalTo: self.iconBox.centerYAnchor),
+            self.icon.widthAnchor.constraint(equalToConstant: 15),
+            self.icon.heightAnchor.constraint(equalToConstant: 15),
+
+            self.iconBox.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.iconBox.centerYAnchor.constraint(equalTo: self.contentView.centerYAnchor),
+            self.iconBox.widthAnchor.constraint(equalToConstant: 24),
+            self.iconBox.heightAnchor.constraint(equalToConstant: 24),
+
+            self.label.leadingAnchor.constraint(equalTo: self.iconBox.trailingAnchor, constant: 10),
+            self.label.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
+            self.label.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 14),
+            self.label.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -14),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("not used") }
+}
+
+// the customer's own tick at the end of the list
+final class FMXTickCell: FMXCell {
+    private let label = UILabel()
+    private let box = UIImageView()
+
+    init(title: String, ticked: Bool) {
+        super.init(style: .default, reuseIdentifier: nil)
+
+        self.box.image = UIImage(systemName: ticked ? "checkmark.circle.fill" : "circle")
+        self.box.tintColor = ticked ? FMXTheme.volt : FMXTheme.faint
+        self.box.contentMode = .scaleAspectFit
+
+        self.label.font = FMXFont.of(16, ticked ? .semibold : .regular)
+        self.label.textColor = ticked ? FMXTheme.text : FMXTheme.muted
+        self.label.text = title
+        self.label.numberOfLines = 0
+
+        for view in [self.box, self.label] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            self.contentView.addSubview(view)
+        }
+
+        let margins = self.contentView.layoutMarginsGuide
+        NSLayoutConstraint.activate([
+            self.box.leadingAnchor.constraint(equalTo: margins.leadingAnchor),
+            self.box.centerYAnchor.constraint(equalTo: self.contentView.centerYAnchor),
+            self.box.widthAnchor.constraint(equalToConstant: 24),
+            self.box.heightAnchor.constraint(equalToConstant: 24),
+
+            self.label.leadingAnchor.constraint(equalTo: self.box.trailingAnchor, constant: 10),
+            self.label.trailingAnchor.constraint(equalTo: margins.trailingAnchor),
+            self.label.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 14),
+            self.label.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: -14),
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("not used") }
+}
