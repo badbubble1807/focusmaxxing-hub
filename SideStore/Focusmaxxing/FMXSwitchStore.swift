@@ -54,7 +54,13 @@ final class FMXSwitchStore {
     // repository's sites.js, which is what the popup and the windows app print on the same switch.
     // one product, one set of names. the only one with no twin over there is Instagram's comments,
     // which the extension does not have a switch for; it is written in the same shape as the rest.
+    //
+    // the first switch of each app is the whole app rather than a part of it. its key is the
+    // extension's own site key ("instagram", "ytfull" in sites.js), not an ig/yt one, because
+    // that is what the desktop calls it. when it is on the custom app puts our own block screen
+    // up over everything the moment it is opened (mobile/shared/FMXBlockScreen.m).
     let switches: [FMXSwitch] = [
+        FMXSwitch(key: "instagram",   label: "Full block",                app: .instagram),
         FMXSwitch(key: "igfeed",      label: "Disable feed",              app: .instagram),
         FMXSwitch(key: "igreels",     label: "Disable reels",             app: .instagram),
         FMXSwitch(key: "igstories",   label: "Disable stories",           app: .instagram),
@@ -63,6 +69,7 @@ final class FMXSwitchStore {
         FMXSwitch(key: "igmessages",  label: "Disable messages",          app: .instagram),
         FMXSwitch(key: "igcomments",  label: "Disable comments",          app: .instagram),
 
+        FMXSwitch(key: "ytfull",      label: "Full block",                app: .youtube),
         FMXSwitch(key: "ytrecs",      label: "Disable recommendations",   app: .youtube),
         FMXSwitch(key: "ytcomments",  label: "Disable comments",          app: .youtube),
         FMXSwitch(key: "ytnotifs",    label: "Disable notifs",            app: .youtube),

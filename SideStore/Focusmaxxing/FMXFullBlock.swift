@@ -17,6 +17,14 @@
 //  screen was written to avoid. so a full block is a tick of the customer's own (fmx.fullblock.done.*),
 //  never a switch, and it is never written into the shared switches file the two apps read.
 //
+//  THE TWO EXCEPTIONS, 2026-09-09. Instagram and YouTube are builds of ours, so the reason above
+//  does not hold for them: there IS something of ours inside to read a switch. their Full block is
+//  a real switch ("instagram", "ytfull" in FMXSwitchStore, the extension's own site keys), and the
+//  app puts our own block screen up over itself when it is on - our mark, one of the twelve
+//  messages, the media, a button that closes the app (mobile/shared/FMXBlockScreen.m). no Screen
+//  Time, no entitlement, nothing to tick. they are still listed in `builtIn` below, because that is
+//  what orders and names the folds; they just never reach FMXFullBlockViewController.
+//
 
 import Foundation
 

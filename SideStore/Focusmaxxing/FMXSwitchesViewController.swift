@@ -9,18 +9,18 @@
 //    Block NSFW        - one row, its label is its heading, opens FMXAdultViewController
 //    Commonly blocked  - eight app boxes in the extension's order, each opening on an arrow to its
 //                        switches, with the glowing ACTIVE marker on any box that has something on.
-//                        Instagram and YouTube open onto their per-part switches (the real ones we
-//                        tweak) with a Full block above them; the other six open onto their one Full
-//                        block row.
+//                        Instagram and YouTube open onto real switches all the way down, Full block
+//                        first; the other six open onto their one guided Full block row.
 //    Custom blocks     - any app the owner names, each a Full block of its own, removable
 //
 //  and under them the Unblocking-countdown card (the wait slider), unchanged.
 //
-//  a per-part switch is a real block, enforced inside Instagram or YouTube: instant on, the wait to
-//  turn off, the 24-hour lock on the wait, the countdown thrown away on leaving - none of that
-//  changed, it just lives on FMXSwitchRow now instead of a table cell. a "Full block" (and every
-//  custom app) is a guided Screen Time block with a tick of its own (FMXFullBlock), never a switch,
-//  so it can never claim a block the phone is not keeping. see FMXFold.swift for the pieces.
+//  a switch is a real block, enforced inside Instagram or YouTube: instant on, the wait to turn off,
+//  the 24-hour lock on the wait, the countdown thrown away on leaving. that now includes their Full
+//  block ("instagram", "ytfull"), which puts our own block screen up over the app - those two are
+//  builds of ours, so nothing about them needs Apple. for the other six apps, and every custom one,
+//  a "Full block" is still a guided Screen Time block with a tick of its own (FMXFullBlock) and
+//  never a switch, so it can never claim a block the phone is not keeping. see FMXFold.swift.
 //
 
 import UIKit
@@ -45,6 +45,7 @@ final class FMXSwitchesViewController: UIViewController {
 
     private var customPane: FMXPaneCard!
     private var waitCard: FMXWaitCard!
+    private var mediaButton: UIButton?
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -151,6 +152,36 @@ final class FMXSwitchesViewController: UIViewController {
             return ok
         }
         self.column.addArrangedSubview(self.waitCard)
+        self.column.addArrangedSubview(self.makeMediaPane())
+    }
+
+    // what plays on the block screen inside the two custom apps, under the message
+    private func makeMediaPane() -> FMXPaneCard {
+        let pane = FMXPaneCard(title: "Block screen", collapsible: false, contentSpacing: 0)
+
+        let button = UIButton(type: .system)
+        button.setTitleColor(FMXTheme.accentText, for: .normal)
+        button.titleLabel?.font = FMXFont.of(15, .bold)
+        button.contentHorizontalAlignment = .leading
+        button.addTarget(self, action: #selector(mediaTapped), for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 46).isActive = true
+
+        self.mediaButton = button
+        pane.addContent(button)
+        self.refreshMedia()
+        return pane
+    }
+
+    private func refreshMedia() {
+        let count = FMXMediaStore.count()
+        let title = count > 0 ? "Pictures and sounds  ·  \(count)" : "Pictures and sounds"
+        self.mediaButton?.setTitle(title, for: .normal)
+    }
+
+    @objc private func mediaTapped() {
+        guard let navigationController = self.navigationController, navigationController.topViewController === self else { return }
+        navigationController.pushViewController(FMXMediaViewController(), animated: true)
     }
 
     private func makeNSFWPane() -> FMXPaneCard {
@@ -170,20 +201,25 @@ final class FMXSwitchesViewController: UIViewController {
         for app in FMXFullBlock.builtIn {
             let fold = FMXFoldView(name: app.name)
 
-            // the Full block row, first, for every app - Instagram and YouTube included
-            let fullBlock = FMXGuidedRow(title: "Full block")
-            fullBlock.onTap = { [weak self] in self?.openFullBlock(app) }
-            fold.addRow(fullBlock)
-            self.fullBlockRows.append((fullBlock, app.id))
-
-            // the two apps we tweak also carry their real per-part switches
             if let fmxApp = FMXFullBlock.switchApp(for: app.id) {
+                // Instagram and YouTube are our own builds, so their Full block is a real switch
+                // like every other row here: the app puts our own block screen up over itself the
+                // moment it is opened (mobile/shared/FMXBlockScreen.m). no Screen Time in it.
+                // "instagram" and "ytfull" are first in FMXSwitchStore, so this loop puts the Full
+                // block on top by itself.
                 for sw in self.store.switches(for: fmxApp) {
                     let row = FMXSwitchRow(key: sw.key, title: sw.label)
                     row.onTap = { [weak self] in self?.tapped(sw) }
                     fold.addRow(row)
                     self.switchRows[sw.key] = row
                 }
+            } else {
+                // the six we do not build: a guided Screen Time tick, never a switch. see the
+                // note at the top of FMXFullBlock.swift for why.
+                let fullBlock = FMXGuidedRow(title: "Full block")
+                fullBlock.onTap = { [weak self] in self?.openFullBlock(app) }
+                fold.addRow(fullBlock)
+                self.fullBlockRows.append((fullBlock, app.id))
             }
 
             self.folds.append((fold, app))
@@ -265,6 +301,7 @@ final class FMXSwitchesViewController: UIViewController {
     // wait card's lock line, from the store and the ticks. touches no open/shut fold state.
     private func refresh() {
         for (key, row) in self.switchRows { row.show(self.phase(for: key)) }
+        self.refreshMedia()
 
         // ?. rather than a force-unwrap: nsfwRow is set in makeNSFWPane before the first refresh
         // today, but that safety should not hang on statement order in buildColumn
@@ -290,8 +327,9 @@ final class FMXSwitchesViewController: UIViewController {
     // YouTube start fully blocked, the product's default), or its Full block set up.
     private func isLive(_ app: FMXFullBlockApp) -> Bool {
         if let fmxApp = FMXFullBlock.switchApp(for: app.id) {
-            let anyBlocked = self.store.switches(for: fmxApp).contains { self.store.isBlocked($0.key) }
-            return anyBlocked || FMXFullBlock.isSetUp(app.id)
+            // Instagram and YouTube have no Screen Time tick any more - every row in their fold,
+            // Full block included, is a switch, so the switches are the whole answer.
+            return self.store.switches(for: fmxApp).contains { self.store.isBlocked($0.key) }
         }
         return FMXFullBlock.isSetUp(app.id)
     }
