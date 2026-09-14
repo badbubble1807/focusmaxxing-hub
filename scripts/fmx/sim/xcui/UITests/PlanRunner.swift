@@ -158,6 +158,15 @@ final class PlanRunner: XCTestCase {
                 self.drag(dy: CGFloat(self.number(step["scrollDy"], 300)), x: 8, hold: 0.5)
             }
         }
+        // the same fallback the idb driver needs: tap the tab's slot on the bar
+        if type == "tab", let index = step["tabIndex"] as? NSNumber {
+            let count = CGFloat(self.number(step["tabCount"], 3))
+            let x = self.screen.width * (CGFloat(index.doubleValue) + 0.5) / count
+            let y = self.screen.height - CGFloat(self.number(step["tabFromBottom"], 58))
+            self.note("  no '\(label)' tab found by label; tapping tab slot \(index) of \(Int(count)) at (\(Int(x)), \(Int(y)))")
+            self.point(x: x, y: y).tap()
+            return
+        }
         throw StepError(description: "could not find '\(label)' (\(match)) on screen")
     }
 

@@ -1,7 +1,7 @@
 {
   "_comment": [
     "the screens the simulator harness walks. both drivers (drive_idb.py and xcui/UITests/PlanRunner.swift) read this file.",
-    "points, not pixels. dy > 0 moves the finger UP by dy points, which scrolls the content down the page.",
+    "points, not pixels (an iPhone 17 Pro is 402 x 874 points). dy > 0 moves the finger UP by dy points, which scrolls the content down the page.",
     "actions:",
     "  launch        {args?: [..], waitFor: label, waitType?: 'tab'|'button', timeout?: s}  (re)launch the app and wait for a label",
     "  dismissAlerts {tap?: ['Allow','OK'], seconds?: s}   tap a system alert (the notification question) if one is up",
@@ -9,16 +9,18 @@
     "  shot          {name}          a screenshot plus an accessibility dump, named <name>.png and <name>.tree.*",
     "  drag          {dy, x?: 8, hold?: 0.8}  one slow finger drag starting in the left gutter (x=8), so it never lands on a switch",
     "  scrollToTop   {}              three long drags down",
-    "  tap           {label, match?: 'exact'|'prefix'|'contains', type?: 'tab'|'button', scrollDy?: 300, maxScrolls?: 0}",
+    "  tap           {label, match?: 'exact'|'prefix'|'contains', type?: 'tab'|'button', scrollDy?: 300, maxScrolls?: 0, tabIndex?, tabCount?: 3, tabFromBottom?: 58}",
+    "                a tab is found by its label where the driver can see the tab bar (xcuitest); idb's accessibility tree has no tab bar, so give tabIndex (0 = left) and it taps that slot",
     "  tapPoint      {x, y}",
     "  back          {}              the navigation bar's back button",
-    "  sleep         {seconds}"
+    "  sleep         {seconds}",
+    "wait for 'Focusmaxxing mobile' (the switches screen's title), not for the 'Switches' tab: both drivers can see the title, only xcuitest can see the tab."
   ],
   "bundleId": "com.SideStore.SideStore",
   "steps": [
-    { "do": "launch", "waitFor": "Switches", "waitType": "tab", "timeout": 180 },
+    { "do": "launch", "waitFor": "Focusmaxxing mobile", "timeout": 180 },
     { "do": "dismissAlerts", "tap": ["Allow", "OK"], "seconds": 6 },
-    { "do": "expectAbsent", "label": "Step 1 of 5", "seconds": 4, "orRelaunchWith": ["-fmxFirstRunDone", "YES"], "waitFor": "Switches", "waitType": "tab" },
+    { "do": "expectAbsent", "label": "Step 1 of 5", "seconds": 4, "orRelaunchWith": ["-fmxFirstRunDone", "YES"], "waitFor": "Focusmaxxing mobile" },
     { "do": "dismissAlerts", "tap": ["Allow", "OK"], "seconds": 2 },
     { "do": "sleep", "seconds": 2 },
     { "do": "shot", "name": "01-switches-top" },
@@ -33,7 +35,7 @@
     { "do": "shot", "name": "05-block-screen" },
     { "do": "back" },
     { "do": "sleep", "seconds": 1 },
-    { "do": "tap", "label": "Settings", "type": "tab" },
+    { "do": "tap", "label": "Settings", "type": "tab", "tabIndex": 2, "tabCount": 3 },
     { "do": "sleep", "seconds": 2 },
     { "do": "shot", "name": "06-settings" }
   ]

@@ -15,6 +15,9 @@
 //   node scripts/fmx/sim/run.js status <branch>          the newest run of <branch>, one line
 //   node scripts/fmx/sim/run.js download <run id> <dir>  unzip that run's sim-screens into <dir>
 //   node scripts/fmx/sim/run.js steps <run id>           each step of the run and how it ended
+//   node scripts/fmx/sim/run.js log <run id> <step> [lines] [regex]
+//        the end of one step's full log (<step> is any part of its name, e.g. "drive with idb"),
+//        optionally only the lines matching a regex. read this before changing anything.
 //
 // for the compiler's own error lines of a failed run: node scripts/fmx/build-errors.js <run id>
 const { execSync } = require("child_process");
@@ -105,9 +108,49 @@ async function download(runId, dir) {
   return true;
 }
 
+// the run's log archive: one text file per step, "job name/<number>_<step name>.txt"
+async function stepLogs(runId) {
+  const r = await fetch("https://api.github.com/repos/" + REPO + "/actions/runs/" + runId + "/logs", { headers });
+  if (!r.ok) throw new Error("could not fetch the log: " + r.status);
+  const zip = Buffer.from(await r.arrayBuffer());
+  const out = [];
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const count = zip.readUInt16LE(end + 10);
+  let at = zip.readUInt32LE(end + 16);
+  for (let i = 0; i < count; i++) {
+    const method = zip.readUInt16LE(at + 10);
+    const compressed = zip.readUInt32LE(at + 20);
+    const nameLength = zip.readUInt16LE(at + 28);
+    const extraLength = zip.readUInt16LE(at + 30);
+    const commentLength = zip.readUInt16LE(at + 32);
+    const localAt = zip.readUInt32LE(at + 42);
+    const name = zip.toString("utf8", at + 46, at + 46 + nameLength);
+    const dataAt = localAt + 30 + zip.readUInt16LE(localAt + 26) + zip.readUInt16LE(localAt + 28);
+    const data = zip.subarray(dataAt, dataAt + compressed);
+    let text = "";
+    try { text = (method === 0 ? data : zlib.inflateRawSync(data)).toString("utf8"); } catch {}
+    out.push({ name, text });
+    at += 46 + nameLength + extraLength + commentLength;
+  }
+  return out;
+}
+
 (async () => {
   const args = process.argv.slice(2);
   const command = args[0];
+
+  // node run.js log <run id> <part of a step name> [lines, default 80] [regex to keep only matching lines]
+  if (command === "log") {
+    const [runId, stepPart, lines, pattern] = args.slice(1);
+    for (const entry of await stepLogs(runId)) {
+      if (!entry.name.includes("/") || !entry.name.includes(stepPart || "")) continue;
+      let text = entry.text.split(/\r?\n/).map(l => l.replace(/^\S+Z\s/, ""));
+      if (pattern) text = text.filter(l => new RegExp(pattern).test(l));
+      console.log("---- " + entry.name + " (" + text.length + " lines)");
+      for (const l of text.slice(-Number(lines || 80))) console.log(l.slice(0, 500));
+    }
+    return;
+  }
 
   if (command === "status") {
     const run = await newestRun(args[1]);

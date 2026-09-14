@@ -170,6 +170,14 @@ def wait_for(label, kind, timeout):
             if find(elements, label, "exact", kind):
                 note("  '%s' is on screen after %.0fs" % (label, time.time() - started))
                 return
+            # while a system alert (the notification question) is up, describe-all shows only the
+            # alert, so the app's own label can never appear until it is answered (run 3)
+            for alert_label in ("Allow", "OK"):
+                button = find(elements, alert_label, "exact", "button")
+                if button:
+                    note("  an alert is up while waiting; tapping '%s'" % alert_label)
+                    tap_xy(*centre(button))
+                    break
         except StepError as error:
             note("  describe failed while waiting: %s" % error)
         time.sleep(2)
@@ -243,6 +251,16 @@ def tap(step):
                 return
         if attempt < int(step.get("maxScrolls", 0)):
             drag(scroll_dy)
+    # idb's accessibility tree has no tab bar at all (run 3), so a tab is tapped by its slot
+    if kind == "tab" and "tabIndex" in step:
+        elements, _raw = describe()
+        width, height = screen_size(elements)
+        count = int(step.get("tabCount", 3))
+        x = width * (int(step["tabIndex"]) + 0.5) / count
+        y = height - float(step.get("tabFromBottom", 58))
+        note("  no '%s' tab in the tree; tapping tab slot %s of %d at (%d, %d)" % (label, step["tabIndex"], count, x, y))
+        tap_xy(x, y)
+        return
     raise StepError("could not find '%s' (%s) on screen" % (label, match))
 
 

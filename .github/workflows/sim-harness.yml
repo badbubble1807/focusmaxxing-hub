@@ -185,8 +185,15 @@ jobs:
         run: |
           mkdir -p "$OUT/logs"
           find ~/Library/Logs/DiagnosticReports -name '*SideStore*' -exec cp {} "$OUT/logs/" \; 2>/dev/null || true
-          if [ -n "${UDID:-}" ]; then xcrun simctl spawn "$UDID" log show --last 20m --style compact --predicate 'process == "SideStore"' > "$OUT/logs/app-log-show.txt" 2>&1 || true; fi
+          if [ -n "${UDID:-}" ]; then
+            xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" groups > "$OUT/logs/groups-after-run.txt" 2>&1 || true
+          fi
           ls -laR "$OUT" | head -n 200
+
+      # before the upload, so summary.txt is in the artifact; the upload still runs when this fails
+      - name: check every screenshot in the plan was taken
+        if: always()
+        run: python3 scripts/fmx/sim/check.py
 
       - name: keep the screenshots
         if: always()
@@ -197,7 +204,3 @@ jobs:
           path: sim-out
           retention-days: 7
           if-no-files-found: warn
-
-      - name: check every screenshot in the plan was taken
-        if: always()
-        run: python3 scripts/fmx/sim/check.py
