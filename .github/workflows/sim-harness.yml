@@ -1,0 +1,240 @@
+# focusmaxxing hub - simulator harness. TEST INFRASTRUCTURE ONLY: it publishes nothing.
+#
+# builds the real Hub (scheme SideStore, the same project build hub uses) for the iOS simulator,
+# boots a fresh iPhone on the newest iOS 26.x runtime, installs the app, writes a seed into its
+# settings before the first launch (scripts/fmx/sim/seeds/*.json - by default only
+# fmxFirstRunDone, so the five-step first run is skipped), then walks the screens listed in
+# scripts/fmx/sim/plan.json and keeps a screenshot and an accessibility dump of each.
+#
+# two drivers walk the same plan, one after the other, each on a freshly installed copy:
+#   idb       (facebook's idb, screenshots with xcrun simctl io)       -> sim-out/idb/
+#   xcuitest  (a throwaway ui-test bundle made by xcodegen at run time) -> sim-out/xcui/
+# the run is green when at least one of them produced every screenshot the plan names.
+#
+# it runs on every push to a branch called ci/<anything>. it never runs on main, it only has
+# read access to the repository, and it has no release step, so it cannot change what phones
+# install. the screenshots are the "sim-screens" artifact of the run, kept 7 days.
+#
+# from the PC: node scripts/fmx/sim/run.js (see the top of that file, and .run/ios/HOW-TO.md in
+# the desktop repository).
+#
+# note for whoever edits scripts/fmx/sim: the hub's .gitignore ignores *.sh, so a NEW shell
+# script there must be added with `git add -f` (run 1 failed on exactly that).
+
+name: sim harness
+
+on:
+  push:
+    branches: ['ci/**']
+
+concurrency:
+  group: sim-harness-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  screens:
+    name: build for the simulator and take screenshots
+    runs-on: macos-26
+    timeout-minutes: 110
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      BUNDLE_ID: com.SideStore.SideStore
+      OUT: ${{ github.workspace }}/sim-out
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 3
+
+      - name: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: tools
+        run: brew install xcbeautify xcodegen
+
+      - name: xcode
+        uses: maxim-lobanov/setup-xcode@v1.6.0
+        with:
+          xcode-version: "26.4"
+
+      # read only: build hub owns this cache, the harness never writes it
+      - name: package downloads (read only, shared with build hub)
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: hub-packages-v1
+
+      # one entry per ci branch at most; a new ci branch starts from build hub's newest cache,
+      # which at least carries the package checkouts
+      - name: derived data (restore)
+        id: dd
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: sim-dd-v1-${{ github.ref_name }}
+          restore-keys: |
+            sim-dd-v1-${{ github.ref_name }}
+            hub-xcode-
+
+      - name: resolve packages
+        run: |
+          for attempt in 1 2 3; do
+            echo "resolve attempt $attempt"
+            if xcodebuild -resolvePackageDependencies -project AltStore.xcodeproj -scheme SideStore > resolve.log 2>&1; then
+              echo "packages resolved"
+              break
+            fi
+            tail -n 20 resolve.log
+            if [ "$attempt" = "3" ]; then echo "could not resolve packages"; exit 1; fi
+            sleep 5
+          done
+
+      - name: build the real app for the simulator
+        id: build
+        run: |
+          set -o pipefail
+          mkdir -p "$OUT/logs"
+          git log -3 --format='%H %s' > "$OUT/commits.txt"
+          # same project, scheme and configuration as build hub; only the sdk and the signing differ.
+          # arm64 only: EMProxy and IDevice ship no x86_64 simulator slice, and the runner is arm64.
+          build() {
+            NSUnbufferedIO=YES xcodebuild build \
+              -project AltStore.xcodeproj -scheme SideStore -configuration Release \
+              -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+              ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+              DEVELOPMENT_TEAM=XYZ0123456 ORG_IDENTIFIER=com.SideStore \
+              "$@" 2>&1 | tee -a build.log | xcbeautify --renderer github-actions
+          }
+          # first choice: xcode's own simulator signing ("sign to run locally"). it links the app's
+          # entitlements (the app group) into the binary, which is where the simulator reads them.
+          # an ad-hoc signature that carries entitlements itself is killed at launch with
+          # "Code Signature Invalid" (run 2 of this harness).
+          if build CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- PROVISIONING_PROFILE_SPECIFIER= ; then
+            echo "signing: xcode's simulator signing (app group linked in)" | tee "$OUT/logs/signing-mode.txt"
+          else
+            {
+              echo "signing: xcode's simulator signing FAILED, so the app is built unsigned like build hub and has no app group"
+              grep -n "error:" build.log | tail -n 40 || true
+            } | tee "$OUT/logs/signing-mode.txt"
+            build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          fi
+          BUILT=$(find ~/Library/Developer/Xcode/DerivedData -type d -path '*/Build/Products/Release-iphonesimulator/SideStore.app' -prune 2>/dev/null | head -n 1)
+          if [ -z "$BUILT" ]; then echo "the build said it succeeded but SideStore.app is not where it should be"; exit 1; fi
+          mkdir -p "$RUNNER_TEMP/sim-build"
+          rm -rf "$RUNNER_TEMP/sim-build/SideStore.app"
+          cp -R "$BUILT" "$RUNNER_TEMP/sim-build/SideStore.app"
+          # the shipped hub has no widget extension (build-hub.yml removes it); match that
+          rm -rf "$RUNNER_TEMP/sim-build/SideStore.app/PlugIns"
+          bash scripts/fmx/sim/sign-for-sim.sh "$RUNNER_TEMP/sim-build/SideStore.app" 2>&1 | tee "$OUT/logs/sign.txt"
+          echo "APP=$RUNNER_TEMP/sim-build/SideStore.app" >> "$GITHUB_ENV"
+
+      - name: keep the compiler's own lines if the build failed
+        if: failure() && steps.build.outcome == 'failure'
+        run: |
+          mkdir -p "$OUT/logs"
+          grep -n "error:" build.log | tail -n 80 | tee "$OUT/logs/build-errors.txt" || true
+          tail -n 250 build.log > "$OUT/logs/build-tail.txt" || true
+
+      - name: slim derived data before keeping it
+        if: steps.build.outcome == 'success' && steps.dd.outputs.cache-matched-key != format('sim-dd-v1-{0}', github.ref_name)
+        continue-on-error: true
+        run: find ~/Library/Developer/Xcode/DerivedData -type d -name 'Release-iphoneos' -prune -exec rm -rf {} + || true
+
+      - name: derived data (save, once per branch)
+        if: steps.build.outcome == 'success' && steps.dd.outputs.cache-matched-key != format('sim-dd-v1-{0}', github.ref_name)
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: sim-dd-v1-${{ github.ref_name }}
+
+      - name: boot an iPhone simulator
+        run: bash scripts/fmx/sim/boot-sim.sh
+
+      # item 2 before-state (ci/item2-before): the idb driver is left out; xcuitest walks three plans
+      # one after the other on ONE install. pass A = plan.json on a fresh install without
+      # fmxFirstRunDone; pass B = plan-signed-in.json after seed-team.py signs a stand-in team in;
+      # pass C = plan-helper.json after a stand-in for the helper is installed.
+      - name: drive with xcuitest
+        id: xcui
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          bash scripts/fmx/sim/prepare-app.sh xcui
+          bash scripts/fmx/sim/drive_xcui.sh
+
+      - name: sign a stand-in team in (test data in the simulator's copy only)
+        id: team
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
+          sleep 3
+          python3 scripts/fmx/sim/seed-team.py 2>&1 | tee "$OUT/logs/seed-team.txt"
+
+      - name: drive with xcuitest, signed in
+        id: xcui_signed_in
+        continue-on-error: true
+        timeout-minutes: 20
+        env:
+          FMX_PLAN: ${{ github.workspace }}/scripts/fmx/sim/plan-signed-in.json
+          FMX_XCUI_NAME: xcui-signed-in
+        run: bash scripts/fmx/sim/drive_xcui.sh
+
+      - name: install a stand-in for the helper (answers localdevvpn links)
+        id: standin
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          cd scripts/fmx/sim/xcui
+          xcodegen generate
+          xcodebuild build -project FMXSimDriver.xcodeproj -scheme FMXHelperStandIn -destination "id=$UDID" \
+            -derivedDataPath "$RUNNER_TEMP/standin-dd" 2>&1 | tee "$OUT/logs/helper-stand-in-build.log" | xcbeautify --renderer github-actions
+          STANDIN=$(find "$RUNNER_TEMP/standin-dd/Build/Products" -type d -name 'FMXHelperStandIn.app' -prune | head -n 1)
+          if [ -z "$STANDIN" ]; then echo "FMXHelperStandIn.app was not built"; exit 1; fi
+          xcrun simctl install "$UDID" "$STANDIN"
+          { echo "installed $STANDIN"; plutil -p "$STANDIN/Info.plist"; } | tee "$OUT/logs/helper-stand-in.txt"
+
+      - name: drive with xcuitest, helper installed
+        id: xcui_helper
+        continue-on-error: true
+        timeout-minutes: 20
+        env:
+          FMX_PLAN: ${{ github.workspace }}/scripts/fmx/sim/plan-helper.json
+          FMX_XCUI_NAME: xcui-helper
+        run: bash scripts/fmx/sim/drive_xcui.sh
+
+      - name: collect crash reports
+        if: always()
+        run: |
+          mkdir -p "$OUT/logs"
+          find ~/Library/Logs/DiagnosticReports -name '*SideStore*' -exec cp {} "$OUT/logs/" \; 2>/dev/null || true
+          if [ -n "${UDID:-}" ]; then
+            xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" groups > "$OUT/logs/groups-after-run.txt" 2>&1 || true
+          fi
+          ls -laR "$OUT" | head -n 200
+
+      # before the upload, so summary.txt is in the artifact; the upload still runs when this fails
+      - name: check every screenshot in the plan was taken
+        if: always()
+        env:
+          FMX_EXTRA_CHECKS: "plan-signed-in.json=xcui-signed-in;plan-helper.json=xcui-helper"
+        run: python3 scripts/fmx/sim/check.py
+
+      - name: keep the screenshots
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-screens
+          path: sim-out
+          retention-days: 7
+          if-no-files-found: warn

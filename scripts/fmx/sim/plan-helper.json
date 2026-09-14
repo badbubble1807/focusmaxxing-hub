@@ -1,0 +1,32 @@
+{
+  "_comment": [
+    "item 2 before-state, pass C. runs after pass B, once a stand-in app that answers localdevvpn:// links (xcui/HelperStandIn) is installed.",
+    "step 4 only moves on when UIApplication.canOpenURL(localdevvpn://) is true (FMXFirstRunViewController.isHelperInstalled) and the helper's enable link opened; the real helper is an App Store app a simulator cannot install.",
+    "the team from pass B is still signed in. same actions as plan.json."
+  ],
+  "bundleId": "com.SideStore.SideStore",
+  "steps": [
+    { "do": "launch", "waitFor": "Step 1 of 5", "timeout": 120 },
+    { "do": "dismissAlerts", "tap": ["Allow", "OK"], "seconds": 3 },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "tap", "label": "Next", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "tap", "label": "Next", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "tap", "label": "Next", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "shot", "name": "50-firstrun-step4-helper-installed" },
+    { "do": "tap", "label": "Switch the helper on", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 4 },
+    { "do": "shot", "name": "51-helper-stand-in-opened" },
+    { "do": "activate", "waitFor": "Step 4 of 5", "timeout": 20 },
+    { "do": "sleep", "seconds": 3 },
+    { "do": "shot", "name": "52-firstrun-step4-helper-on" },
+    { "do": "tap", "label": "Next", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "shot", "name": "53-firstrun-step5" },
+    { "do": "tap", "label": "Open the app list", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 3 },
+    { "do": "shot", "name": "54-after-firstrun" }
+  ]
+}

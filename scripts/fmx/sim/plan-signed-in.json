@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "item 2 before-state, pass B. runs after pass A on the same install, once seed-team.py has written one Account and one Team row (isActiveTeam) into the Hub's AltStore.sqlite.",
+    "a real Apple ID sign-in is impossible on a CI simulator, and step 3 of the first run only offers Next once DatabaseManager.activeTeam() is not nil, so this is the only way to photograph steps 3 (signed in) and 4 (helper not installed).",
+    "fmxFirstRunDone is still unset (pass A only ever passed it as a launch argument), so the first run shows again. same actions as plan.json."
+  ],
+  "bundleId": "com.SideStore.SideStore",
+  "steps": [
+    { "do": "launch", "waitFor": "Step 1 of 5", "timeout": 120 },
+    { "do": "dismissAlerts", "tap": ["Allow", "OK"], "seconds": 3 },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "tap", "label": "Next", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "tap", "label": "Next", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "shot", "name": "40-firstrun-step3-signed-in" },
+    { "do": "tap", "label": "Next", "type": "button", "anywhere": true },
+    { "do": "sleep", "seconds": 1.5 },
+    { "do": "shot", "name": "41-firstrun-step4-helper-not-installed" },
+
+    { "do": "launch", "args": ["-fmxFirstRunDone", "YES"], "waitFor": "Focusmaxxing mobile", "timeout": 120 },
+    { "do": "sleep", "seconds": 2 },
+    { "do": "tap", "label": "Settings", "type": "tab", "tabIndex": 2, "tabCount": 3 },
+    { "do": "sleep", "seconds": 2 },
+    { "do": "shot", "name": "42-settings-signed-in-top" },
+    { "do": "drag", "dy": 350 },
+    { "do": "shot", "name": "43-settings-signed-in-scrolled-350" },
+    { "do": "drag", "dy": 350 },
+    { "do": "shot", "name": "44-settings-signed-in-scrolled-700" }
+  ]
+}

@@ -1,0 +1,69 @@
+# focusmaxxing hub simulator harness: the throwaway ui-test project (xcodegen generate).
+# nothing here ships; the host app only exists because a ui-test bundle needs one.
+# FMXHelperStandIn (item 2 before-state) is a do-nothing app that answers localdevvpn:// links, so
+# the first run's step 4 sees "the helper" as installed. it has its own scheme and is only built and
+# installed by the workflow step that needs it, never by the FMXSimDriver scheme.
+name: FMXSimDriver
+options:
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGNING_REQUIRED: "NO"
+    DEVELOPMENT_TEAM: ""
+    SWIFT_VERSION: "5.0"
+    GENERATE_INFOPLIST_FILE: "YES"
+    ARCHS: arm64
+    ONLY_ACTIVE_ARCH: "YES"
+targets:
+  FMXSimHost:
+    type: application
+    platform: iOS
+    sources: [Host]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.focusmaxxing.simdriver.host
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+  FMXSimDriverUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: FMXSimHost
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.focusmaxxing.simdriver.uitests
+        TEST_TARGET_NAME: FMXSimHost
+  FMXHelperStandIn:
+    type: application
+    platform: iOS
+    sources: [HelperStandIn]
+    info:
+      path: HelperStandIn-Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: com.focusmaxxing.simdriver.helperstandin
+            CFBundleURLSchemes: [localdevvpn]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.focusmaxxing.simdriver.helperstandin
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+schemes:
+  FMXSimDriver:
+    build:
+      targets:
+        FMXSimHost: all
+        FMXSimDriverUITests: [test]
+    test:
+      targets:
+        - FMXSimDriverUITests
+  FMXHelperStandIn:
+    build:
+      targets:
+        FMXHelperStandIn: all
