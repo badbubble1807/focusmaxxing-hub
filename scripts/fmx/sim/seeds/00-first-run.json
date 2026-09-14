@@ -1,0 +1,4 @@
+{
+  "_comment": "written into the app's own settings (Library/Preferences/com.SideStore.SideStore.plist in its data container) before the first launch. every *.json in this folder is merged in name order; keys starting with _ are notes and are skipped; a null value removes the key. fmxFirstRunDone is the flag in SideStore/Focusmaxxing/FMXFirstRunViewController.swift that TabBarController.presentFirstRunIfNeeded checks.",
+  "fmxFirstRunDone": true
+}
