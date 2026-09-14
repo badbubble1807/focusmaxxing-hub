@@ -17,6 +17,9 @@
 #
 # from the PC: node scripts/fmx/sim/run.js (see the top of that file, and .run/ios/HOW-TO.md in
 # the desktop repository).
+#
+# note for whoever edits scripts/fmx/sim: the hub's .gitignore ignores *.sh, so a NEW shell
+# script there must be added with `git add -f` (run 1 failed on exactly that).
 
 name: sim harness
 
@@ -100,15 +103,29 @@ jobs:
           set -o pipefail
           mkdir -p "$OUT/logs"
           git log -3 --format='%H %s' > "$OUT/commits.txt"
-          # same project, scheme and configuration as build hub; only the sdk differs.
+          # same project, scheme and configuration as build hub; only the sdk and the signing differ.
           # arm64 only: EMProxy and IDevice ship no x86_64 simulator slice, and the runner is arm64.
-          NSUnbufferedIO=YES xcodebuild build \
-            -project AltStore.xcodeproj -scheme SideStore -configuration Release \
-            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-            DEVELOPMENT_TEAM=XYZ0123456 ORG_IDENTIFIER=com.SideStore \
-            2>&1 | tee build.log | xcbeautify --renderer github-actions
+          build() {
+            NSUnbufferedIO=YES xcodebuild build \
+              -project AltStore.xcodeproj -scheme SideStore -configuration Release \
+              -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+              ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+              DEVELOPMENT_TEAM=XYZ0123456 ORG_IDENTIFIER=com.SideStore \
+              "$@" 2>&1 | tee -a build.log | xcbeautify --renderer github-actions
+          }
+          # first choice: xcode's own simulator signing ("sign to run locally"). it links the app's
+          # entitlements (the app group) into the binary, which is where the simulator reads them.
+          # an ad-hoc signature that carries entitlements itself is killed at launch with
+          # "Code Signature Invalid" (run 2 of this harness).
+          if build CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- PROVISIONING_PROFILE_SPECIFIER= ; then
+            echo "signing: xcode's simulator signing (app group linked in)" | tee "$OUT/logs/signing-mode.txt"
+          else
+            {
+              echo "signing: xcode's simulator signing FAILED, so the app is built unsigned like build hub and has no app group"
+              grep -n "error:" build.log | tail -n 40 || true
+            } | tee "$OUT/logs/signing-mode.txt"
+            build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          fi
           BUILT=$(find ~/Library/Developer/Xcode/DerivedData -type d -path '*/Build/Products/Release-iphonesimulator/SideStore.app' -prune 2>/dev/null | head -n 1)
           if [ -z "$BUILT" ]; then echo "the build said it succeeded but SideStore.app is not where it should be"; exit 1; fi
           mkdir -p "$RUNNER_TEMP/sim-build"
@@ -117,7 +134,6 @@ jobs:
           # the shipped hub has no widget extension (build-hub.yml removes it); match that
           rm -rf "$RUNNER_TEMP/sim-build/SideStore.app/PlugIns"
           bash scripts/fmx/sim/sign-for-sim.sh "$RUNNER_TEMP/sim-build/SideStore.app" 2>&1 | tee "$OUT/logs/sign.txt"
-          /usr/libexec/PlistBuddy -c 'Print :ALTAppGroups' "$RUNNER_TEMP/sim-build/SideStore.app/Info.plist" >> "$OUT/logs/sign.txt" 2>&1 || true
           echo "APP=$RUNNER_TEMP/sim-build/SideStore.app" >> "$GITHUB_ENV"
 
       - name: keep the compiler's own lines if the build failed
@@ -149,6 +165,8 @@ jobs:
         timeout-minutes: 20
         run: |
           brew tap facebook/fb
+          # homebrew refuses a third-party tap until it is trusted (run 2)
+          brew trust facebook/fb
           brew install idb-companion
           python -m pip install --quiet fb-idb
           bash scripts/fmx/sim/prepare-app.sh idb
