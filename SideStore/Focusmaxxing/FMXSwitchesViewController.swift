@@ -33,7 +33,6 @@ final class FMXSwitchesViewController: UIViewController {
     private var readyAt = [String: Date]()
     private var ticker: Timer?
 
-    private let scrollView = UIScrollView()
     private let column = UIStackView()
 
     // what the tick repaints, held so a countdown can be redrawn without rebuilding anything
@@ -64,21 +63,20 @@ final class FMXSwitchesViewController: UIViewController {
         self.navigationController?.navigationBar.prefersLargeTitles = true
         FMXTheme.style(navigationItem: self.navigationItem)
 
-        // the ground and the scroll view over it come from the theme, which also tells the bars to
-        // follow the scroll view - see FMXTheme.ground
-        self.scrollView.alwaysBounceVertical = true
-        FMXTheme.ground(self, scrolling: self.scrollView)
+        // the ground, the scrolling and the bars following it all come from the theme, which hands
+        // back the view the column goes in - see FMXTheme.ground
+        let content = FMXTheme.ground(self)
 
         self.column.axis = .vertical
         self.column.spacing = 14
         self.column.translatesAutoresizingMaskIntoConstraints = false
-        self.scrollView.addSubview(self.column)
+        content.addSubview(self.column)
 
         NSLayoutConstraint.activate([
-            self.column.topAnchor.constraint(equalTo: self.scrollView.contentLayoutGuide.topAnchor, constant: 14),
-            self.column.bottomAnchor.constraint(equalTo: self.scrollView.contentLayoutGuide.bottomAnchor, constant: -28),
-            self.column.leadingAnchor.constraint(equalTo: self.scrollView.frameLayoutGuide.leadingAnchor, constant: 16),
-            self.column.trailingAnchor.constraint(equalTo: self.scrollView.frameLayoutGuide.trailingAnchor, constant: -16),
+            self.column.topAnchor.constraint(equalTo: content.topAnchor, constant: 14),
+            self.column.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -28),
+            self.column.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 16),
+            self.column.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -16),
         ])
 
         // make sure the shared file exists even before anything has been touched
