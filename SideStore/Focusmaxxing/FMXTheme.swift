@@ -199,6 +199,131 @@ enum FMXTheme {
     static func backdrop() -> UIView {
         return FMXBackdropView()
     }
+
+    /// the ground under a screen that lays out its own column of cards instead of being a list of
+    /// rows: the ink, the backdrop, a scroll view over the whole screen - and that scroll view named
+    /// as the one the bars follow. it hands back the view the screen puts its content in. that view
+    /// is exactly as tall as whatever the screen pins inside it, and the page scrolls that far.
+    ///
+    /// the bars are the point. the navigation bar only leaves its see-through, large-title look (the
+    /// scroll-edge appearance in `style(navigationItem:)`) for as long as it knows the content has
+    /// scrolled under it. a plain UIScrollView does not hold on to that: registered with
+    /// `setContentScrollView`, and even as the screen's first subview or its very own view, the bar
+    /// collapses while a finger scrolls, but UIKit puts the large title back - list still scrolled,
+    /// title and status bar drawn over the rows - every time it works the bar out afresh: coming
+    /// back from a pushed screen or from another tab, a fold opening or closing. measured in the
+    /// simulator on 2026-09-17, with the same offsets and insets going in each time: a table keeps
+    /// its collapsed bar through all of those, which is why Settings never had the problem.
+    ///
+    /// so the scroll view here is a table with no rows (`FMXScrollingGround`): the screen's whole
+    /// column is its header, and the backdrop is its background, as behind every other list. a
+    /// hand-built screen comes through here, so it cannot end up on a plain scroll view again.
+    static func ground(_ viewController: UIViewController) -> UIView {
+        let view: UIView = viewController.view
+        view.backgroundColor = FMXTheme.ink
+
+        // made the size of the screen from the start, so the content is never laid out at no width
+        let scroller = FMXScrollingGround(size: view.bounds.size)
+        scroller.translatesAutoresizingMaskIntoConstraints = false
+        view.insertSubview(scroller, at: 0)
+
+        NSLayoutConstraint.activate([
+            scroller.topAnchor.constraint(equalTo: view.topAnchor),
+            scroller.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scroller.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroller.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        // iOS 15 and later, which is as far back as the hub goes. with no edge given it is the
+        // scroll view for the top bar and the tab bar both, as SideStore's own hand-built screens
+        // register theirs (AppViewController, HeaderContentViewController).
+        viewController.setContentScrollView(scroller)
+
+        return scroller.content
+    }
+}
+
+/// the scroll view `FMXTheme.ground(_:)` lays over a screen: a table with no rows, whose header is
+/// the screen's content. see there for why it is a table and not a plain UIScrollView.
+///
+/// a table only knows how tall its header is from the header's frame, and only reads that when it
+/// is handed the header. so the content sits in a view of its own inside the header, pinned at the
+/// top and the sides and deliberately not at the bottom: it is always the height its own
+/// constraints give it, and never squeezed or stretched to fit the header. whenever that height is
+/// not the header's - the first layout, a fold opening or closing, a custom app added - `fit()`
+/// makes the header match and hands it to the table again.
+final class FMXScrollingGround: UITableView {
+    /// the view the screen puts its content in. the screen pins its content to all four sides of it.
+    let content = UIView()
+
+    private let header = FMXScrollingGroundHeader()
+    private var fitting = false
+
+    init(size: CGSize) {
+        super.init(frame: CGRect(origin: .zero, size: size), style: .plain)
+
+        // the ink and the backdrop, the same call as behind every list in the hub. there are no
+        // rows, so there are no lines between them either.
+        FMXTheme.style(tableView: self)
+        self.separatorStyle = .none
+        self.alwaysBounceVertical = true
+
+        self.header.frame = CGRect(origin: .zero, size: CGSize(width: size.width, height: .zero))
+        self.content.translatesAutoresizingMaskIntoConstraints = false
+        self.header.addSubview(self.content)
+        NSLayoutConstraint.activate([
+            self.content.topAnchor.constraint(equalTo: self.header.topAnchor),
+            self.content.leadingAnchor.constraint(equalTo: self.header.leadingAnchor),
+            self.content.trailingAnchor.constraint(equalTo: self.header.trailingAnchor),
+        ])
+
+        // the content changing height lays the header out again. the table's own layout is where
+        // the header is handed back, so the header only asks for one rather than doing it mid-layout.
+        self.header.onLayout = { [weak self] in self?.setNeedsLayout() }
+        self.tableHeaderView = self.header
+    }
+
+    required init?(coder: NSCoder) { fatalError("not used") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        self.fit()
+    }
+
+    /// the header as wide as the table and exactly as tall as the content, handed to the table
+    /// again only when it was not already.
+    private func fit() {
+        guard !self.fitting else { return }
+        self.fitting = true
+        defer { self.fitting = false }
+
+        let width = self.bounds.width
+        guard width > 0 else { return }
+
+        var frame = self.header.frame
+        frame.size.width = width
+        self.header.frame = frame
+        self.header.layoutIfNeeded()
+
+        let height = self.content.frame.height
+        let scale = self.traitCollection.displayScale
+        let unchanged = scale > 0 ? (frame.height * scale).rounded() == (height * scale).rounded() : frame.height == height
+        guard !unchanged else { return }
+
+        frame.size.height = height
+        self.header.frame = frame
+        self.tableHeaderView = self.header
+    }
+}
+
+/// the header of `FMXScrollingGround`: nothing to see, it only says when it has been laid out.
+private final class FMXScrollingGroundHeader: UIView {
+    var onLayout: (() -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        self.onLayout?()
+    }
 }
 
 /// a view that is nothing but a gradient. used for the switch's track, the big buttons and the
@@ -241,8 +366,9 @@ class FMXGradientView: UIView {
 /// layer, and a radial gradient that has already faded out well before its own edge reads the same,
 /// so the blur is simply left out rather than faked with private calls.
 ///
-/// every screen gets this for free: `FMXTheme.backdrop()` and `FMXTheme.style(tableView:)` are the
-/// only two ways a screen asks for a ground, and both make one of these.
+/// every screen gets this for free: `FMXTheme.backdrop()`, `FMXTheme.ground(_:)` and
+/// `FMXTheme.style(tableView:)` are the only ways a screen asks for a ground, and all three make one
+/// of these (`ground(_:)` through `style(tableView:)`).
 final class FMXBackdropView: UIView {
     /// one blob: how big it is and where it sits, both as a fraction of the longer side of the
     /// screen, plus how long it takes to drift once round. taken straight across from `.b1 .b2 .b3`
