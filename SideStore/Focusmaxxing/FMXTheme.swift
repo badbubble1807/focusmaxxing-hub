@@ -199,6 +199,49 @@ enum FMXTheme {
     static func backdrop() -> UIView {
         return FMXBackdropView()
     }
+
+    /// the ground under a screen that builds its own scroll view instead of being a table or a
+    /// collection: the ink, the backdrop behind everything, the scroll view over the whole screen
+    /// on top of it - and that scroll view named as the one the bars follow.
+    ///
+    /// the last part is the one that matters. the navigation bar only leaves its see-through,
+    /// large-title look (the scroll-edge appearance in `style(navigationItem:)`) when it knows which
+    /// scroll view the screen scrolls, and left to itself UIKit only looks at the screen's own view
+    /// and its first subview - which, with the ground behind the list, is the ground. so the bar
+    /// never collapsed, and the large title and the status bar were drawn over the rows scrolling
+    /// under them. a table or collection screen is its own scroll view and never had the problem;
+    /// a hand-built one comes through here, so it cannot be wired up the wrong way round.
+    ///
+    /// the screen puts its own content inside the scroll view afterwards.
+    static func ground(_ viewController: UIViewController, scrolling scrollView: UIScrollView) {
+        let view: UIView = viewController.view
+        view.backgroundColor = FMXTheme.ink
+
+        let backdrop = FMXTheme.backdrop()
+        backdrop.translatesAutoresizingMaskIntoConstraints = false
+        view.insertSubview(backdrop, at: 0)
+
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.backgroundColor = .clear
+        view.insertSubview(scrollView, aboveSubview: backdrop)
+
+        NSLayoutConstraint.activate([
+            backdrop.topAnchor.constraint(equalTo: view.topAnchor),
+            backdrop.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backdrop.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backdrop.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        // iOS 15 and later, which is as far back as the hub goes. with no edge given it is the
+        // scroll view for the top bar and the tab bar both, as SideStore's own hand-built screens
+        // register theirs (AppViewController, HeaderContentViewController).
+        viewController.setContentScrollView(scrollView)
+    }
 }
 
 /// a view that is nothing but a gradient. used for the switch's track, the big buttons and the
@@ -241,8 +284,9 @@ class FMXGradientView: UIView {
 /// layer, and a radial gradient that has already faded out well before its own edge reads the same,
 /// so the blur is simply left out rather than faked with private calls.
 ///
-/// every screen gets this for free: `FMXTheme.backdrop()` and `FMXTheme.style(tableView:)` are the
-/// only two ways a screen asks for a ground, and both make one of these.
+/// every screen gets this for free: `FMXTheme.backdrop()`, `FMXTheme.ground(_:scrolling:)` and
+/// `FMXTheme.style(tableView:)` are the only ways a screen asks for a ground, and all three make one
+/// of these.
 final class FMXBackdropView: UIView {
     /// one blob: how big it is and where it sits, both as a fraction of the longer side of the
     /// screen, plus how long it takes to drift once round. taken straight across from `.b1 .b2 .b3`

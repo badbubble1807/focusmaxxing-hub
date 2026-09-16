@@ -64,15 +64,10 @@ final class FMXSwitchesViewController: UIViewController {
         self.navigationController?.navigationBar.prefersLargeTitles = true
         FMXTheme.style(navigationItem: self.navigationItem)
 
-        self.view.backgroundColor = FMXTheme.ink
-        let backdrop = FMXTheme.backdrop()
-        backdrop.translatesAutoresizingMaskIntoConstraints = false
-        self.view.addSubview(backdrop)
-
-        self.scrollView.translatesAutoresizingMaskIntoConstraints = false
-        self.scrollView.backgroundColor = .clear
+        // the ground and the scroll view over it come from the theme, which also tells the bars to
+        // follow the scroll view - see FMXTheme.ground
         self.scrollView.alwaysBounceVertical = true
-        self.view.addSubview(self.scrollView)
+        FMXTheme.ground(self, scrolling: self.scrollView)
 
         self.column.axis = .vertical
         self.column.spacing = 14
@@ -80,16 +75,6 @@ final class FMXSwitchesViewController: UIViewController {
         self.scrollView.addSubview(self.column)
 
         NSLayoutConstraint.activate([
-            backdrop.topAnchor.constraint(equalTo: self.view.topAnchor),
-            backdrop.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            backdrop.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            backdrop.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-
-            self.scrollView.topAnchor.constraint(equalTo: self.view.topAnchor),
-            self.scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            self.scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            self.scrollView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-
             self.column.topAnchor.constraint(equalTo: self.scrollView.contentLayoutGuide.topAnchor, constant: 14),
             self.column.bottomAnchor.constraint(equalTo: self.scrollView.contentLayoutGuide.bottomAnchor, constant: -28),
             self.column.leadingAnchor.constraint(equalTo: self.scrollView.frameLayoutGuide.leadingAnchor, constant: 16),
