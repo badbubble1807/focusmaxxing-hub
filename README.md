@@ -79,4 +79,4 @@ The two custom apps are built from their own open-source projects; their source 
 
 ## Pro
 
-The Pro tier signs plain Instagram and YouTube for your phone on our own developer account, with no helper, no computer step and no seven-day renewals. It is not available yet.
+The paid plans never sign apps for anyone: the custom apps run on your own Apple ID, the same way as the free route. More than two custom blocked apps need your own paid Apple Developer account, bought from Apple. Focusmaxxing does not provide one.

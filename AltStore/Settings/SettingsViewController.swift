@@ -445,7 +445,7 @@ private extension SettingsViewController
             }
             else
             {
-                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("Pro removes the helper, the computer step and the seven-day renewals.", comment: "")
+                settingsHeaderFooterView.secondaryLabel.text = NSLocalizedString("More than two custom blocked apps need your own paid Apple Developer account, bought from Apple. Focusmaxxing does not provide one.", comment: "")
             }
 
         case .account:
