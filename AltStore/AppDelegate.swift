@@ -145,6 +145,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         // above because that one may clear the keychain.
         FMXCertificateHandoff.adoptIfPresent()
 
+        // focusmaxxing hub: the switches screen no longer keeps a list of the customer's own apps,
+        // so whatever an older build saved for it is cleared, before any screen is built. safe to
+        // repeat at every launch.
+        FMXFullBlock.removeOldCustomApps()
+
         // Trigger daily boot sync for Anisette servers if needed
         Task.detached {
             await AnisetteServersManager.shared.performDailySyncIfNeeded()

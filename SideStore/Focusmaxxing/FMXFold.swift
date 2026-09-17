@@ -3,7 +3,7 @@
 //  Focusmaxxing Hub
 //
 //  the pieces the switches screen is built from, so it looks like the extension's site blocker: a
-//  card for each section (Block NSFW / Commonly blocked / Custom blocks), and inside Commonly
+//  card for each section (Block NSFW / Commonly blocked), and inside Commonly
 //  blocked a box per app that opens on an arrow to show its switches, with a glowing ACTIVE marker
 //  on any box that has something blocked. this is the extension's `.card.panel > .pane > .fold`
 //  written in UIKit, the same shapes and the same words (theme.css, popup.html, sites.js).
@@ -12,7 +12,7 @@
 //  - the rows are UIControls. a control nested inside a control is hit-tested first, so tapping a
 //    switch fires the switch and tapping the rest of the row fires the row. every decoration on a
 //    row (a label, the state switch drawn as a picture, a chevron) has its interaction turned off so
-//    its touch falls through to the row; only a real second control (the trash on a custom app)
+//    its touch falls through to the row; only a real second control (the switch on a switch row)
 //    keeps its own touch. never put those decorations in a UIStackView on the row - a stack is
 //    interaction-enabled and would swallow the touch before the row control saw it.
 //  - a box or a section folds away by hiding a view that is an ARRANGED SUBVIEW of an outer stack.
@@ -137,26 +137,23 @@ final class FMXSwitchRow: UIControl {
     }
 }
 
-// MARK: - a guided row (Full block, a custom app, or Block NSFW)
+// MARK: - a guided row (Full block or Block NSFW)
 
 /// a row that opens a guided screen rather than flipping a switch: the "Full block" row inside a
-/// fold, a custom app's row, and the Block NSFW row. the switch on it is a picture of the state, not
-/// a toggle - tapping anywhere but the trash opens the screen where the block is set up, exactly as
-/// the NSFW row on the old screen did.
+/// fold, and the Block NSFW row. the switch on it is a picture of the state, not a toggle - tapping
+/// anywhere on the row opens the screen where the block is set up, exactly as the NSFW row on the
+/// old screen did.
 final class FMXGuidedRow: UIControl {
     private let titleLabel = UILabel()
     private let statusLabel = UILabel()
     private let pill = FMXSwitchView()
     private let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
-    private let removeButton = UIButton(type: .system)
 
     var onTap: (() -> Void)?
-    var onRemove: (() -> Void)?
 
     /// heading:true renders the title like a section heading (Block NSFW is its rectangle's own
     /// heading, the way the extension styles that switch's label as a section-title).
-    /// removable:true shows a trash button (a control of its own) for a custom app.
-    init(title: String, heading: Bool = false, removable: Bool = false) {
+    init(title: String, heading: Bool = false) {
         super.init(frame: .zero)
 
         if heading {
@@ -182,27 +179,18 @@ final class FMXGuidedRow: UIControl {
         self.chevron.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 12, weight: .bold)
         self.chevron.setContentHuggingPriority(.required, for: .horizontal)
 
-        self.removeButton.setImage(UIImage(systemName: "trash"), for: .normal)
-        self.removeButton.tintColor = FMXTheme.faint
-        self.removeButton.isHidden = !removable
-        self.removeButton.addTarget(self, action: #selector(removeTapped), for: .touchUpInside)
-
         self.addTarget(self, action: #selector(fire), for: .touchUpInside)
 
-        for view in [self.titleLabel, self.statusLabel, self.pill, self.chevron, self.removeButton] {
+        for view in [self.titleLabel, self.statusLabel, self.pill, self.chevron] {
             view.translatesAutoresizingMaskIntoConstraints = false
             self.addSubview(view)
         }
 
-        // right-anchored chain: title (flex) -> status -> pill -> chevron -> [trash] -> edge
+        // right-anchored chain: title (flex) -> status -> pill -> chevron -> edge
         NSLayoutConstraint.activate([
             self.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
 
-            self.removeButton.trailingAnchor.constraint(equalTo: self.trailingAnchor),
-            self.removeButton.centerYAnchor.constraint(equalTo: self.centerYAnchor),
-            self.removeButton.widthAnchor.constraint(equalToConstant: removable ? 28 : 0),
-
-            self.chevron.trailingAnchor.constraint(equalTo: self.removeButton.leadingAnchor, constant: removable ? -12 : 0),
+            self.chevron.trailingAnchor.constraint(equalTo: self.trailingAnchor),
             self.chevron.centerYAnchor.constraint(equalTo: self.centerYAnchor),
 
             self.pill.trailingAnchor.constraint(equalTo: self.chevron.leadingAnchor, constant: -10),
@@ -224,7 +212,6 @@ final class FMXGuidedRow: UIControl {
     required init?(coder: NSCoder) { fatalError("not used") }
 
     @objc private func fire() { self.onTap?() }
-    @objc private func removeTapped() { self.onRemove?() }
 
     /// setUp:false shows the grey "not set up yet" switch and a note; when it is set up the switch
     /// shows on (or off, only for Block NSFW, whose block can be allowed while still set up).
@@ -372,12 +359,12 @@ final class FMXFoldView: UIView {
     }
 }
 
-// MARK: - a pane card (one of the three rectangles)
+// MARK: - a pane card (one of the rectangles)
 
-/// one of the three rounded rectangles: a heading, an optional arrow to fold the whole thing away,
-/// and a column of content under it. the extension's `.card.panel > .pane`. Block NSFW passes no
-/// title (its single row is its own heading); Commonly blocked and Custom blocks pass a title and
-/// are collapsible. an outer vertical stack again, so folding really shrinks the card.
+/// one of the rounded rectangles: a heading, an optional arrow to fold the whole thing away, and a
+/// column of content under it. the extension's `.card.panel > .pane`. Block NSFW passes no title
+/// (its single row is its own heading); Commonly blocked passes a title and is collapsible. an
+/// outer vertical stack again, so folding really shrinks the card.
 final class FMXPaneCard: UIView {
     private let outer = UIStackView()
     private let header = UIControl()
@@ -462,23 +449,6 @@ final class FMXPaneCard: UIView {
     /// add a row/fold/view to the card's column
     func addContent(_ view: UIView) {
         self.content.addArrangedSubview(view)
-    }
-
-    /// a full-width hairline between two rows (the Custom blocks list)
-    func addSeparator() {
-        let line = UIView()
-        line.backgroundColor = FMXTheme.hairline
-        line.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        self.content.addArrangedSubview(line)
-    }
-
-    /// take everything out of the column, so the Custom blocks list can be rebuilt after an add or
-    /// a remove
-    func clearContent() {
-        for view in self.content.arrangedSubviews {
-            self.content.removeArrangedSubview(view)
-            view.removeFromSuperview()
-        }
     }
 
     @objc private func toggle() {

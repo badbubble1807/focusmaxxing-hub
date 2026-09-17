@@ -250,7 +250,7 @@ enum FMXTheme {
 /// is handed the header. so the content sits in a view of its own inside the header, pinned at the
 /// top and the sides and deliberately not at the bottom: it is always the height its own
 /// constraints give it, and never squeezed or stretched to fit the header. whenever that height is
-/// not the header's - the first layout, a fold opening or closing, a custom app added - `fit()`
+/// not the header's - the first layout, a fold opening or closing - `fit()`
 /// makes the header match and hands it to the table again.
 final class FMXScrollingGround: UITableView {
     /// the view the screen puts its content in. the screen pins its content to all four sides of it.

@@ -28,11 +28,10 @@
 
 import Foundation
 
-// one app the customer can whole-app block through Screen Time: a built-in one, or one they added.
+// one of the built-in apps the customer can whole-app block.
 struct FMXFullBlockApp: Equatable {
-    let id: String     // the stable key its tick is stored under: "instagram", "discord", "custom.<uuid>"
-    let name: String   // what the customer reads: "Instagram", "X / Twitter", a name they typed
-    let custom: Bool
+    let id: String     // the stable key its tick is stored under: "instagram", "discord"
+    let name: String   // what the customer reads: "Instagram", "X / Twitter"
 }
 
 enum FMXFullBlock {
@@ -41,14 +40,14 @@ enum FMXFullBlock {
     // shows as a single "Full block". every name is SITES[key].label, to the letter - note the
     // spaces in "X / Twitter".
     static let builtIn: [FMXFullBlockApp] = [
-        FMXFullBlockApp(id: "instagram", name: "Instagram",   custom: false),
-        FMXFullBlockApp(id: "youtube",   name: "YouTube",     custom: false),
-        FMXFullBlockApp(id: "discord",   name: "Discord",     custom: false),
-        FMXFullBlockApp(id: "tiktok",    name: "TikTok",      custom: false),
-        FMXFullBlockApp(id: "facebook",  name: "Facebook",    custom: false),
-        FMXFullBlockApp(id: "twitter",   name: "X / Twitter", custom: false),
-        FMXFullBlockApp(id: "reddit",    name: "Reddit",      custom: false),
-        FMXFullBlockApp(id: "roblox",    name: "Roblox",      custom: false),
+        FMXFullBlockApp(id: "instagram", name: "Instagram"),
+        FMXFullBlockApp(id: "youtube",   name: "YouTube"),
+        FMXFullBlockApp(id: "discord",   name: "Discord"),
+        FMXFullBlockApp(id: "tiktok",    name: "TikTok"),
+        FMXFullBlockApp(id: "facebook",  name: "Facebook"),
+        FMXFullBlockApp(id: "twitter",   name: "X / Twitter"),
+        FMXFullBlockApp(id: "reddit",    name: "Reddit"),
+        FMXFullBlockApp(id: "roblox",    name: "Roblox"),
     ]
 
     // the FMXApp whose per-part switches belong under a built-in fold, or nil for a Full-block-only
@@ -78,49 +77,42 @@ enum FMXFullBlock {
         UserDefaults.standard.set(done, forKey: FMXFullBlock.doneKey(id))
     }
 
-    // MARK: the apps the customer added themselves (the Custom blocks pane)
+    // MARK: clearing away the old Custom blocks list
     //
-    // each is one whole-app block set up through the same Screen Time steps; there is no per-part
-    // switch for a custom app, exactly as the extension's custom sites are single "Full block"
-    // entries. stored as an ordered list of {id, name} in the hub's own defaults.
-    private static let customKey = "fmx.fullblock.custom"
+    // until 2026-09-17 the switches screen had a Custom blocks pane: any app the customer named,
+    // each a Full block of its own, kept in the hub's own defaults as a list of {id, name} under
+    // "fmx.fullblock.custom" (ids "custom.<uuid>") with its tick under
+    // "fmx.fullblock.done.custom.<uuid>". the pane is gone, so a phone that saved some is cleared of
+    // both here. the Screen Time limits the customer set for those apps are Apple's, not ours: the
+    // hub never wrote them and cannot remove them, so they stay on the phone until the customer
+    // takes them off in Settings.
+    //
+    // called at every launch from AppDelegate, before any screen is built. removing is safe to
+    // repeat, so it needs no flag of its own. nothing is read as a particular type: the list goes
+    // whatever shape it is in, and the ticks are found by their names only. the built-in ticks
+    // ("fmx.fullblock.done.discord" and the rest, see builtIn) never begin with "custom.", so they
+    // are never touched.
+    private static let oldCustomListKey = "fmx.fullblock.custom"
+    private static let oldCustomTickPrefix = "fmx.fullblock.done.custom."
 
-    static func customApps() -> [FMXFullBlockApp] {
-        let raw = UserDefaults.standard.array(forKey: FMXFullBlock.customKey) as? [[String: String]] ?? []
-        return raw.compactMap { entry in
-            guard let id = entry["id"], let name = entry["name"] else { return nil }
-            return FMXFullBlockApp(id: id, name: name, custom: true)
+    static func removeOldCustomApps() {
+        let defaults = UserDefaults.standard
+        var removed = 0
+
+        if defaults.object(forKey: FMXFullBlock.oldCustomListKey) != nil {
+            defaults.removeObject(forKey: FMXFullBlock.oldCustomListKey)
+            removed += 1
         }
-    }
 
-    // add a custom app. returns nil if the name is empty or already in the list (case-insensitive),
-    // otherwise the new app. the id is a fresh uuid, so it can never collide with a built-in id or
-    // another custom one, and two apps with lookalike names keep their own ticks.
-    @discardableResult
-    static func addCustomApp(named name: String) -> FMXFullBlockApp? {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+        let ticks = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix(FMXFullBlock.oldCustomTickPrefix) }
+        for key in ticks {
+            defaults.removeObject(forKey: key)
+        }
+        removed += ticks.count
 
-        var apps = FMXFullBlock.customApps()
-        guard !apps.contains(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) else { return nil }
-
-        let app = FMXFullBlockApp(id: "custom.\(UUID().uuidString)", name: trimmed, custom: true)
-        apps.append(app)
-        FMXFullBlock.save(apps)
-        return app
-    }
-
-    static func removeCustomApp(id: String) {
-        var apps = FMXFullBlock.customApps()
-        apps.removeAll { $0.id == id }
-        FMXFullBlock.save(apps)
-        // the tick goes with it, so a re-added app of the same name starts unset
-        UserDefaults.standard.removeObject(forKey: FMXFullBlock.doneKey(id))
-    }
-
-    private static func save(_ apps: [FMXFullBlockApp]) {
-        let raw = apps.map { ["id": $0.id, "name": $0.name] }
-        UserDefaults.standard.set(raw, forKey: FMXFullBlock.customKey)
+        if removed > 0 {
+            debugLog("[FMXFullBlock] removed the old custom blocks: \(removed) saved value(s)")
+        }
     }
 
     // MARK: the Screen Time steps, one wording for every app
