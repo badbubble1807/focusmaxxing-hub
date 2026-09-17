@@ -405,6 +405,14 @@ final class FMXPaneCard: UIView {
 
         if let title = title {
             self.titleLabel.attributedText = FMXPaneCard.heading(title)
+            if !self.collapsible {
+                // a title too long for its line wraps on to the next and the card grows to hold it,
+                // rather than being cut off with "...". only on a card with no arrow: beside the
+                // arrow the title and the arrow share the row by an even pull, and changing the
+                // title's settings there moves the arrow on some phones
+                self.titleLabel.numberOfLines = 0
+                self.titleLabel.lineBreakMode = .byWordWrapping
+            }
 
             self.arrow.tintColor = FMXTheme.faint
             self.arrow.contentMode = .scaleAspectFit

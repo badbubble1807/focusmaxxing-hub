@@ -30,13 +30,17 @@ final class FMXMediaViewController: UITableViewController {
 
     init() {
         super.init(style: .insetGrouped)
-        self.title = "Block screen"
+        self.title = "Custom block messages/media"
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // the small title in the bar, never the large one: "Custom block messages/media" is wider
+        // than a large title's room on any phone, and a large title does not wrap or shrink - it is
+        // cut off with "..." (see FMXTheme.style(navigationItem:)). the small one fits whole.
+        self.navigationItem.largeTitleDisplayMode = .never
         FMXTheme.style(navigationItem: self.navigationItem)
         FMXTheme.style(tableView: self.tableView)
         self.tableView.rowHeight = UITableView.automaticDimension
@@ -75,7 +79,7 @@ final class FMXMediaViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         switch Section(rawValue: section) {
         case .add:  return FMXSectionHeader(title: "Add")
-        case .list: return FMXSectionHeader(title: "On the block screen")
+        case .list: return FMXSectionHeader(title: "In custom block messages/media", whole: true)
         case nil:   return nil
         }
     }
@@ -120,7 +124,7 @@ final class FMXMediaViewController: UITableViewController {
         case .list:
             if self.media.isEmpty {
                 let cell = FMXStepCell(style: .default, reuseIdentifier: nil)
-                cell.show(number: nil, text: "Nothing yet. The block screen shows your message on its own until you add something.")
+                cell.show(number: nil, text: "Nothing yet. Custom block messages/media shows your message on its own until you add something.")
                 return cell
             }
             let url = self.media[indexPath.row]
