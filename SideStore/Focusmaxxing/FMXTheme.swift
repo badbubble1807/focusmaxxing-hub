@@ -185,6 +185,34 @@ enum FMXTheme {
         navigationItem.scrollEdgeAppearance = edge
     }
 
+    /// the room a pushed screen's small title leaves on each side for the back arrow: the arrow on
+    /// its own is 44 points and UIKit starts the title 6 after it (measured in the simulator,
+    /// 2026-09-17, with the arrow from `style(navigationItem:)`).
+    static let backArrowRoom: CGFloat = 50
+
+    /// keeps a small title whole on a bar of any width. call it after `style(navigationItem:)`, and
+    /// again whenever the bar's width may have changed.
+    ///
+    /// the small title does not shrink either: on a bar too narrow for it UIKit cuts it off with
+    /// "...". so wherever the words fit centred with the back arrow's room on both sides, UIKit
+    /// draws them itself, exactly as on every other screen; on a narrower bar (320 points: the first
+    /// iPhone SE, an iPhone SE with Display Zoom, an iPad in Slide Over) the same words go in an
+    /// `FMXBarTitle`, which UIKit fits between the arrow and the edge and which shrinks to that
+    /// room instead of being cut off.
+    static func keepSmallTitleWhole(_ navigationItem: UINavigationItem, barWidth: CGFloat) {
+        guard let title = navigationItem.title, !title.isEmpty, barWidth > 0 else { return }
+
+        // the words exactly as the bar has been told to draw them
+        let words = NSAttributedString(string: title, attributes: navigationItem.standardAppearance?.titleTextAttributes ?? [:])
+        let fitsCentred = ceil(words.size().width) <= barWidth - 2 * FMXTheme.backArrowRoom
+
+        if fitsCentred {
+            if navigationItem.titleView is FMXBarTitle { navigationItem.titleView = nil }
+        } else if (navigationItem.titleView as? FMXBarTitle)?.words != title {
+            navigationItem.titleView = FMXBarTitle(words)
+        }
+    }
+
     /// a list on the ground, with no lines of its own: the cards are the shapes.
     static func style(tableView: UITableView) {
         tableView.backgroundColor = FMXTheme.ink
@@ -241,6 +269,35 @@ enum FMXTheme {
 
         return scroller.content
     }
+}
+
+/// a small title in a bar too narrow for UIKit to draw it whole (`FMXTheme.keepSmallTitleWhole`):
+/// the same words in the same face and colour, which shrink to the room the bar gives them rather
+/// than being cut off with "...". at the width they need they are drawn at full size.
+final class FMXBarTitle: UILabel {
+    /// the title these words are, to tell whether the bar already has them
+    let words: String
+
+    init(_ text: NSAttributedString) {
+        self.words = text.string
+        super.init(frame: .zero)
+
+        self.attributedText = text
+        self.textAlignment = .center
+        self.numberOfLines = 1
+        self.adjustsFontSizeToFitWidth = true
+        self.minimumScaleFactor = 0.5
+        self.baselineAdjustment = .alignBaselines
+        self.accessibilityTraits.insert(.header)
+
+        // UIKit sizes a title view that uses constraints from its own size and squeezes it between
+        // the back arrow and the edge when there is less room than that. it keeps its own width
+        // rather than being stretched, and gives way only to the bar.
+        self.translatesAutoresizingMaskIntoConstraints = false
+        self.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+    }
+
+    required init?(coder: NSCoder) { fatalError("not used") }
 }
 
 /// the scroll view `FMXTheme.ground(_:)` lays over a screen: a table with no rows, whose header is
