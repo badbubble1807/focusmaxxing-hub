@@ -135,7 +135,7 @@ final class FMXSwitchesViewController: UIViewController {
 
     // what plays on the block screen inside the two custom apps, under the message
     private func makeMediaPane() -> FMXPaneCard {
-        let pane = FMXPaneCard(title: "Block screen", collapsible: false, contentSpacing: 0)
+        let pane = FMXPaneCard(title: "Custom block messages/media", collapsible: false, contentSpacing: 0)
 
         let button = UIButton(type: .system)
         button.setTitleColor(FMXTheme.accentText, for: .normal)

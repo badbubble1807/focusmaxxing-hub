@@ -28,19 +28,43 @@ final class FMXMediaViewController: UITableViewController {
     private var arrived = Set<IndexPath>()
     private var entranceUntil = Date.distantPast
 
+    // the bar width the title was last fitted to. a table lays itself out on every frame of a
+    // scroll, and the title only needs looking at again when the width is new.
+    private var titleFittedTo: CGFloat = 0
+
     init() {
         super.init(style: .insetGrouped)
-        self.title = "Block screen"
+        self.title = "Custom block messages/media"
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // the small title in the bar, never the large one: "Custom block messages/media" is wider
+        // than a large title's room on any phone, and a large title does not wrap or shrink - it is
+        // cut off with "..." (see FMXTheme.style(navigationItem:)). the small one fits whole on a
+        // bar 360 points wide or more, but not on a 320-point one, so keepSmallTitleWhole shrinks
+        // it there instead of letting UIKit cut it off.
+        self.navigationItem.largeTitleDisplayMode = .never
         FMXTheme.style(navigationItem: self.navigationItem)
+        self.keepTitleWhole()
         FMXTheme.style(tableView: self.tableView)
         self.tableView.rowHeight = UITableView.automaticDimension
         self.tableView.estimatedRowHeight = 56
+    }
+
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        // the bar may have changed width: an iPad window resized, the phone turned
+        self.keepTitleWhole()
+    }
+
+    private func keepTitleWhole() {
+        let width = self.navigationController?.view.bounds.width ?? self.view.bounds.width
+        guard width != self.titleFittedTo else { return }
+        self.titleFittedTo = width
+        FMXTheme.keepSmallTitleWhole(self.navigationItem, barWidth: width)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -75,7 +99,7 @@ final class FMXMediaViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         switch Section(rawValue: section) {
         case .add:  return FMXSectionHeader(title: "Add")
-        case .list: return FMXSectionHeader(title: "On the block screen")
+        case .list: return FMXSectionHeader(title: "In custom block messages/media", whole: true)
         case nil:   return nil
         }
     }
@@ -120,7 +144,7 @@ final class FMXMediaViewController: UITableViewController {
         case .list:
             if self.media.isEmpty {
                 let cell = FMXStepCell(style: .default, reuseIdentifier: nil)
-                cell.show(number: nil, text: "Nothing yet. The block screen shows your message on its own until you add something.")
+                cell.show(number: nil, text: "Nothing yet. Custom block messages/media shows your message on its own until you add something.")
                 return cell
             }
             let url = self.media[indexPath.row]

@@ -379,7 +379,15 @@ final class FMXSectionHeader: UIView {
     private let titleLabel = UILabel()
     private let chip = FMXChipView()
 
-    init(title: String) {
+    private let whole: Bool
+    // keeps the words short of the chip. a `whole` heading only needs it while a chip is showing
+    private var clearOfChip: NSLayoutConstraint!
+
+    /// whole: the heading is never cut off with "...". while no chip is showing its words may run on
+    /// into the chip's corner, and one still too long for its line is drawn a little smaller instead
+    /// of being shortened. the header keeps its one line and its `height`.
+    init(title: String, whole: Bool = false) {
+        self.whole = whole
         super.init(frame: .zero)
 
         self.titleLabel.font = FMXFont.of(19, .heavy)
@@ -399,20 +407,32 @@ final class FMXSectionHeader: UIView {
             self.addSubview(view)
         }
 
+        self.clearOfChip = self.chip.leadingAnchor.constraint(greaterThanOrEqualTo: self.titleLabel.trailingAnchor, constant: 10)
+
         NSLayoutConstraint.activate([
             self.titleLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: FMXTheme.rowInset),
             self.titleLabel.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -10),
 
-            self.chip.leadingAnchor.constraint(greaterThanOrEqualTo: self.titleLabel.trailingAnchor, constant: 10),
+            self.clearOfChip,
             self.chip.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -FMXTheme.rowInset),
             self.chip.centerYAnchor.constraint(equalTo: self.titleLabel.centerYAnchor),
         ])
+
+        if whole {
+            // the chip starts hidden, so there is nothing to keep clear of yet
+            self.clearOfChip.isActive = false
+            self.titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: self.trailingAnchor, constant: -FMXTheme.rowInset).isActive = true
+            self.titleLabel.adjustsFontSizeToFitWidth = true
+            self.titleLabel.minimumScaleFactor = 0.5
+            self.titleLabel.baselineAdjustment = .alignBaselines
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
 
     func show(chip text: String, colour: UIColor) {
         self.chip.show(text, colour: colour)
+        if self.whole { self.clearOfChip.isActive = !text.isEmpty }
         self.accessibilityLabel = text.isEmpty ? self.titleLabel.text : "\(self.titleLabel.text ?? ""), \(text)"
     }
 }
