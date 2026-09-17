@@ -4,9 +4,8 @@
 //
 //  the guided "Full block" screen, one screen for every app. it is FMXAdultViewController with the
 //  DNS half taken out: one set of Screen Time steps, then the customer's tick. it is pushed from a
-//  fold's "Full block" row on the switches screen (Instagram, YouTube and the six single apps) and
-//  from a row in the Custom blocks pane; the app's name comes in through init, so the wording is
-//  the same code for all of them.
+//  fold's "Full block" row on the switches screen (Instagram, YouTube and the six single apps); the
+//  app's name comes in through init, so the wording is the same code for all of them.
 //
 //  the same honesty as the NSFW screen: the hub cannot block an app itself on a free apple account,
 //  so it guides and the phone blocks, behind the Screen Time passcode. the tick is the customer's
