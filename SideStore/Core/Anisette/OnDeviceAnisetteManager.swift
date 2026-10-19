@@ -61,7 +61,8 @@ public actor OnDeviceAnisetteManager {
         }
 
         let config = await AnisetteConfigManager.shared.loadConfig()
-        let clientInfo = config.clientInfo.isEmpty ? LocalAnisetteProvider.defaultClientInfo : config.clientInfo
+        // focusmaxxing: our own default, not AnisetteKit's - the AnisetteKit this build pins still names Xcode
+        let clientInfo = config.clientInfo.isEmpty ? AppConstants.Anisette.defaultClientInfo : config.clientInfo
         let resolvedLocale = config.customLocale != nil ? Locale(identifier: config.customLocale!) : .current
         let resolvedTimeZone = config.customTimeZone != nil ? (TimeZone(identifier: config.customTimeZone!) ?? .current) : .current
 

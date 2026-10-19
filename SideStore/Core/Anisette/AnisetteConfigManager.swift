@@ -81,7 +81,14 @@ public actor AnisetteConfigManager {
     
     public func loadConfig() -> AnisetteConfig {
         if let data = try? Data(contentsOf: configFileURL),
-           let config = try? Foundation.JSONDecoder().decode(AnisetteConfig.self, from: data) {
+           var config = try? Foundation.JSONDecoder().decode(AnisetteConfig.self, from: data) {
+            // focusmaxxing: a configuration saved by an older hub still names Xcode, which Apple's
+            // sign-in now refuses; it takes the new defaults and keeps everything else
+            if config.clientInfo.contains("com.apple.dt.Xcode") {
+                config.clientInfo = AppConstants.Anisette.defaultClientInfo
+                config.userAgent = AppConstants.Anisette.defaultUserAgent
+                saveConfig(config)
+            }
             return config
         }
         // Fallback to static defaults in FetchAnisetteDataOperation
