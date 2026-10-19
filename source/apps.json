@@ -20,6 +20,15 @@
       "screenshots": [],
       "versions": [
         {
+          "version": "1.0.24",
+          "date": "2026-10-19T01:39:44Z",
+          "localizedDescription": "Focusmaxxing build 1.0.24.",
+          "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/hub/focusmaxxing-hub.ipa",
+          "size": 11891631,
+          "sha256": "e73fd429fac4e40467c69ba11e841734a7bf18761d30e692de4ea71007370773",
+          "minOSVersion": "15.0"
+        },
+        {
           "version": "1.0.22",
           "date": "2026-09-10T06:02:27Z",
           "localizedDescription": "Focusmaxxing build 1.0.22.",
@@ -53,15 +62,6 @@
           "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/hub/focusmaxxing-hub.ipa",
           "size": 11861334,
           "sha256": "d851257c8e89e07dfcc397173a9f8d26e791da451a5eeaa3244add96c3063639",
-          "minOSVersion": "15.0"
-        },
-        {
-          "version": "1.0.18",
-          "date": "2026-09-07T18:07:10Z",
-          "localizedDescription": "Focusmaxxing Hub build 1.0.18.",
-          "downloadURL": "https://github.com/badbubble1807/focusmaxxing-hub/releases/download/hub/focusmaxxing-hub.ipa",
-          "size": 11842719,
-          "sha256": "cf42459441d7506502ffc350bd09f6370d660bbc912a405f302933c6aaf3d244",
           "minOSVersion": "15.0"
         }
       ],
