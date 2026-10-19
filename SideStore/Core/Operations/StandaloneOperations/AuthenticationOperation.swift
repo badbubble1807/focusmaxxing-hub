@@ -807,11 +807,15 @@ private enum AnisetteProvider {
 
         let provider = SideSign.AnisetteDataProvider.shared
         let existingBlob = AnisetteDataManager.shared.anisetteAdiBlob.flatMap { Data(base64Encoded: $0) }
+        // focusmaxxing: left out, this falls back to the pinned SideSign's default, which names
+        // Xcode, and Apple's sign-in refuses that; send ours, as the on-device route does
+        let config = await AnisetteConfigManager.shared.loadConfig()
 
         let (anisetteData, newAdiBlob) = try await provider.fetchAnisetteDataWithFailover(
             servers: UserDefaults.standard.disableAnisetteRotation ? [servers[startIndex]] : servers,
             startIndex: startIndex,
             existingAdiBlob: existingBlob,
+            clientInfo: config.clientInfo.isEmpty ? AppConstants.Anisette.defaultClientInfo : config.clientInfo,
             onError: { error in
                 if case AnisetteError.outdatedV1Server(let serverURL, _) = error {
                     if UserDefaults.standard.defaultServerURL == serverURL.absoluteString {
