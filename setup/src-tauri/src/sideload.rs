@@ -20,6 +20,7 @@ use isideload::{
         application::SpecialApp, builder::MaxCertsBehavior, cert_identity::CertificateIdentity,
         sideloader::Sideloader,
     },
+    util::callbacks::MaxCertsCallbackBox,
 };
 use rsa::pkcs8::EncodePrivateKey;
 use serde::Serialize;
@@ -27,11 +28,11 @@ use tauri::{AppHandle, Manager, State, Window};
 use tracing::{info, warn};
 use x509_cert::der::Encode;
 
-pub type SideloaderMutex = Mutex<Option<Sideloader>>;
+pub type SideloaderMutex = Mutex<Option<Sideloader<MaxCertsCallbackBox>>>;
 
 pub struct SideloaderGuard<'a> {
     state: &'a SideloaderMutex,
-    sideloader: Option<Sideloader>,
+    sideloader: Option<Sideloader<MaxCertsCallbackBox>>,
 }
 
 impl<'a> SideloaderGuard<'a> {
@@ -44,7 +45,7 @@ impl<'a> SideloaderGuard<'a> {
         })
     }
 
-    pub fn get_mut(&mut self) -> &mut Sideloader {
+    pub fn get_mut(&mut self) -> &mut Sideloader<MaxCertsCallbackBox> {
         self.sideloader
             .as_mut()
             .expect("Sideloader should be present")
@@ -82,6 +83,9 @@ async fn sideload(
             app_path.into(),
             false,
             None::<fn(f32) -> std::future::Ready<()>>,
+            // the library only seals a pairing file into AltStore; the hub gets its own in
+            // step 3 of install_hub_operation
+            None,
         )
         .await?;
 
@@ -233,7 +237,7 @@ async fn hand_certificate_to_hub(
         sideloader.get_mut().get_dev_session(),
         &team,
         storage.as_ref(),
-        &MaxCertsBehavior::Error,
+        &MaxCertsBehavior::<MaxCertsCallbackBox>::Error,
     )
     .await?;
 

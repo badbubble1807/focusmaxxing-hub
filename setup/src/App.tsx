@@ -14,7 +14,7 @@ import { Advanced } from "./Advanced";
 import { useStore } from "./StoreContext";
 import { asAppError } from "./errors";
 import { S } from "./strings";
-import { links, defaultAnisetteServer } from "./links";
+import { links, defaultAnisetteServer, anisetteServerKey } from "./links";
 
 function App() {
   const [device, setDevice] = useState<DeviceInfo | null>(null);
@@ -24,7 +24,7 @@ function App() {
   const [install, setInstall] = useState<InstallState>(idleInstall);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [keyringMissing, setKeyringMissing] = useState(false);
-  const [anisetteServer, setAnisetteServer] = useStore<string>("anisetteServer", defaultAnisetteServer);
+  const [anisetteServer, setAnisetteServer] = useStore<string>(anisetteServerKey, defaultAnisetteServer);
   const [overrideKeyring, setOverrideKeyring] = useStore<boolean>("overrideKeyring", false);
 
   useEffect(() => {

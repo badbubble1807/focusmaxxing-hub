@@ -16,14 +16,17 @@ export const links = {
 // the sign-in servers apple's login needs a stand-in for ("anisette"). the first is the default;
 // the others are fallbacks for when it is down. the screen shows them as "Sign-in server 1, 2, …"
 // because the addresses carry project names a customer is not meant to read.
+// iloader 2.3.10's list, in its order (2026-10-19). the old servers (ani.sidestore.io and the
+// rest) stopped working with apple's sign-in in october 2026. the last two pretend to be a
+// windows pc and, by iloader's account, work about half the time and never with a code by text.
 export const anisetteServers = [
-  "ani.sidestore.io",
-  "ani.stikstore.app",
-  "ani.sidestore.app",
-  "ani.sidestore.zip",
-  "ani.846969.xyz",
-  "ani.neoarz.xyz",
-  "ani.xu30.top",
-  "anisette.wedotstud.io",
+  "new.ani.sidestore.io",
+  "mac-ani.jkcoxson.com",
+  "ani3.stikstore.app",
+  "ani.jkcoxson.com",
+  "ani2.stikstore.app",
 ];
 export const defaultAnisetteServer = anisetteServers[0];
+// where the chosen one is saved. renamed with the new list, so a choice saved from the old list
+// (which the sign-in would still use) is left behind
+export const anisetteServerKey = "newAnisetteServer";

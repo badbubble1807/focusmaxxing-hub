@@ -26,7 +26,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # "amfi" is the developer mode service, "installation_proxy" lists the phone's apps; the rest is iloader's list
 idevice = { version = "0.1.57", features = ["usbmuxd", "house_arrest", "afc", "core_device_proxy", "remote_pairing", "tcp", "tunnel_tcp_stack", "xpc", "rsd", "pair", "amfi", "installation_proxy"] }
-isideload = { version = "0.3.17", features = ["fs-storage"], git = "https://github.com/nab138/isideload", package = "isideload", branch = "apple-codesign-quick" }
+# 0.4.6 from crates.io, as iloader 2.3.10 uses it. 0.3.17 (the old git pin) stopped signing in
+# in october 2026: apple's sign-in server answered every login with "503 Service Temporarily
+# Unavailable", because it now refuses the device that version said it was. 0.4.6 asks the
+# sign-in server which device to say instead.
+isideload = { version = "0.4.6", features = ["fs-storage"] }
 keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "linux-native-sync-persistent"] }
 tauri-plugin-store = "2"
 futures = "0.3.31"

@@ -6,10 +6,11 @@
 //        node scripts/fmx/dispatch.js watch           only watch the newest "build hub" run
 //        node scripts/fmx/dispatch.js setup           start a "build setup" run (the computer step) and watch it
 //        node scripts/fmx/dispatch.js setup watch     only watch the newest "build setup" run
+//        FMX_BRANCH=<branch> in front builds that branch instead of main
 const { execSync } = require("child_process");
 
 const REPO = "badbubble1807/focusmaxxing-hub";
-const BRANCH = "main";
+const BRANCH = process.env.FMX_BRANCH || "main";
 // each build: its workflow file and the release it publishes to
 const TARGETS = {
   hub: { workflow: "build-hub.yml", tag: "hub" },

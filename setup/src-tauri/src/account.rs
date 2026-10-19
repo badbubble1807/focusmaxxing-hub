@@ -10,6 +10,7 @@ use isideload::{
     auth::apple_account::{AppleAccount, TwoFactorCallbackParams, TwoFactorCallbackResponse},
     dev::{certificates::DevelopmentCertificate, developer_session::DeveloperSession},
     sideload::{SideloaderBuilder, builder::MaxCertsBehavior, sideloader::Sideloader},
+    util::callbacks::MaxCertsCallbackBox,
 };
 use keyring::Entry;
 use rootcause::prelude::*;
@@ -87,7 +88,7 @@ async fn login(
     email: &str,
     password: &str,
     anisette_server: String,
-) -> Result<Sideloader, AppError> {
+) -> Result<Sideloader<MaxCertsCallbackBox>, AppError> {
     let tfa_closure = {
         let window_clone = window.clone();
         move |params: TwoFactorCallbackParams| {
@@ -136,40 +137,42 @@ async fn login(
 
     debug!("Created developer session");
 
-    let max_certs_callback = {
-        let window_clone = window.clone();
-        move |certs: &Vec<DevelopmentCertificate>| -> Option<Vec<String>> {
-            let cert_infos: Vec<CertificateInfo> = certs
-                .iter()
-                .map(|cert| CertificateInfo {
-                    name: cert.name.clone(),
-                    certificate_id: cert.certificate_id.clone(),
-                    serial_number: cert.serial_number.clone(),
-                    machine_name: cert.machine_name.clone(),
-                    machine_id: cert.machine_id.clone(),
-                })
-                .collect();
-            window_clone
-                .emit("max-certs-reached", cert_infos)
-                .expect("Failed to emit max-certs-reached event");
+    // since isideload 0.4 this callback is async; the body is iloader 2.3.10's
+    let max_certs_callback: MaxCertsCallbackBox = {
+        let window = window.clone();
+        Box::new(move |certs: Vec<DevelopmentCertificate>| {
+            let window_clone = window.clone();
+            Box::pin(async move {
+                let cert_infos: Vec<CertificateInfo> = certs
+                    .iter()
+                    .map(|cert| CertificateInfo {
+                        name: cert.name.clone(),
+                        certificate_id: cert.certificate_id.clone(),
+                        serial_number: cert.serial_number.clone(),
+                        machine_name: cert.machine_name.clone(),
+                        machine_id: cert.machine_id.clone(),
+                    })
+                    .collect();
+                window_clone.emit("max-certs-reached", cert_infos)?;
 
-            let (tx, rx) = std::sync::mpsc::channel::<Option<Vec<String>>>();
-            let handler_id = window_clone.listen("max-certs-response", move |event| {
-                let certs = event.payload();
-                let certs = serde_json::from_str::<Option<Vec<String>>>(certs).unwrap_or(None);
-                let _ = tx.send(certs);
-            });
+                let (tx, rx) = std::sync::mpsc::channel::<Option<Vec<String>>>();
+                let handler_id = window_clone.listen("max-certs-response", move |event| {
+                    let certs = event.payload();
+                    let certs = serde_json::from_str::<Option<Vec<String>>>(certs).unwrap_or(None);
+                    let _ = tx.send(certs);
+                });
 
-            let result = rx.recv_timeout(Duration::from_secs(300));
-            window_clone.unlisten(handler_id);
-            result.unwrap_or(None)
-        }
+                let result = rx.recv_timeout(Duration::from_secs(300));
+                window_clone.unlisten(handler_id);
+                Ok(result?)
+            })
+        })
     };
 
     let sideloader = SideloaderBuilder::new(dev_session, email.to_lowercase())
         .machine_name(MACHINE_NAME.into())
         .storage(create_sideloading_storage(app)?)
-        .max_certs_behavior(MaxCertsBehavior::Prompt(Box::new(max_certs_callback)))
+        .max_certs_behavior(MaxCertsBehavior::Prompt(max_certs_callback))
         .build();
 
     debug!("Built sideloader");

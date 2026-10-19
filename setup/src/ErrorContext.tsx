@@ -7,7 +7,7 @@ import { Suggestions } from "./components/Suggestions";
 import { useStore } from "./StoreContext";
 import { AppError, fullMessage, shortMessage, suggestionsFor } from "./errors";
 import { S } from "./strings";
-import { defaultAnisetteServer } from "./links";
+import { defaultAnisetteServer, anisetteServerKey } from "./links";
 
 export const ErrorContext = createContext<{
   err: (title: string, error: AppError) => void;
@@ -18,7 +18,7 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [error, setError] = useState<AppError | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [anisetteServer] = useStore<string>("anisetteServer", defaultAnisetteServer);
+  const [anisetteServer] = useStore<string>(anisetteServerKey, defaultAnisetteServer);
 
   const close = () => {
     setTitle(null);
