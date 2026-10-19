@@ -796,14 +796,15 @@ private enum AnisetteProvider {
     }
 
     private static func fetchRemote(handler: AnisetteServerHandler) async throws -> ALTAnisetteData {
-        // focusmaxxing: always the one server apple's sign-in still takes (FMXSignInServer). the
-        // saved server list can be months old and miss it, and this hub hides the screens that
-        // would let anyone pick another
-        guard let server = URL(string: FMXSignInServer.address) else {
+        // focusmaxxing: only the servers apple's sign-in still takes (FMXSignInServer), starting
+        // with the last one that worked. the saved server list can be months old and miss them,
+        // and this hub hides the screens that would let anyone pick another
+        let servers = FMXSignInServer.addresses.compactMap { URL(string: $0) }
+        guard !servers.isEmpty else {
             throw AnisetteError.noServersConfigured
         }
-        let servers = [server]
-        let startIndex = 0
+        let lastServer = UserDefaults.standard.menuAnisetteURL
+        let startIndex = servers.firstIndex(where: { $0.absoluteString == lastServer }) ?? 0
 
         let provider = SideSign.AnisetteDataProvider.shared
         let existingBlob = AnisetteDataManager.shared.anisetteAdiBlob.flatMap { Data(base64Encoded: $0) }
