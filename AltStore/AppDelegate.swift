@@ -145,6 +145,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         // above because that one may clear the keychain.
         FMXCertificateHandoff.adoptIfPresent()
 
+        // focusmaxxing hub: apple's sign-in refuses the on-device anisette since october 2026, so
+        // the hub signs in through one remote server; see FMXSignInServer. once per phone.
+        FMXSignInServer.moveIfNeeded()
+
         // focusmaxxing hub: the switches screen no longer keeps a list of the customer's own apps,
         // so whatever an older build saved for it is cleared, before any screen is built. safe to
         // repeat at every launch.

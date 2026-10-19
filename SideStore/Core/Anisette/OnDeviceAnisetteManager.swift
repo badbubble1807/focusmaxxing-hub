@@ -92,7 +92,8 @@ public actor OnDeviceAnisetteManager {
         return anisetteData
     }
 
-    private func resolveDeviceIdentifier() -> UUID {
+    // focusmaxxing: not private, the remote route uses the same id (AuthenticationOperation.fetchRemote)
+    func resolveDeviceIdentifier() -> UUID {
         if let storedId = AnisetteDataManager.shared.anisetteIdentifier, !storedId.isEmpty {
             if let parsed = UUID(uuidString: storedId) {
                 debugLog("[OnDeviceAnisetteManager] [Fetch] Using existing device UUID: \(parsed.uuidString)")

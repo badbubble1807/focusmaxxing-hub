@@ -796,24 +796,28 @@ private enum AnisetteProvider {
     }
 
     private static func fetchRemote(handler: AnisetteServerHandler) async throws -> ALTAnisetteData {
-        let serverUrlStrings = await AnisetteServersManager.shared.getActiveServerURLs()
-        let servers = serverUrlStrings.compactMap { URL(string: $0) }
-        guard !servers.isEmpty else {
+        // focusmaxxing: always the one server apple's sign-in still takes (FMXSignInServer). the
+        // saved server list can be months old and miss it, and this hub hides the screens that
+        // would let anyone pick another
+        guard let server = URL(string: FMXSignInServer.address) else {
             throw AnisetteError.noServersConfigured
         }
-
-        let lastServer = UserDefaults.standard.menuAnisetteURL
-        let startIndex = servers.firstIndex(where: { $0.absoluteString == lastServer }) ?? 0
+        let servers = [server]
+        let startIndex = 0
 
         let provider = SideSign.AnisetteDataProvider.shared
         let existingBlob = AnisetteDataManager.shared.anisetteAdiBlob.flatMap { Data(base64Encoded: $0) }
         // focusmaxxing: left out, this falls back to the pinned SideSign's default, which names
         // Xcode, and Apple's sign-in refuses that; send ours, as the on-device route does
         let config = await AnisetteConfigManager.shared.loadConfig()
+        // focusmaxxing: the same device id every time, as upstream does now; left out, the library
+        // makes up a new one per call, which the provisioning in adi.pb no longer matches
+        let identifier = await OnDeviceAnisetteManager.shared.resolveDeviceIdentifier()
 
         let (anisetteData, newAdiBlob) = try await provider.fetchAnisetteDataWithFailover(
-            servers: UserDefaults.standard.disableAnisetteRotation ? [servers[startIndex]] : servers,
+            servers: servers,
             startIndex: startIndex,
+            identifier: identifier,
             existingAdiBlob: existingBlob,
             clientInfo: config.clientInfo.isEmpty ? AppConstants.Anisette.defaultClientInfo : config.clientInfo,
             onError: { error in
